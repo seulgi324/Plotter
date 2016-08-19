@@ -1,0 +1,21 @@
+* needed things
+** global
+*** luminosity
+*** directory
+*** rootfile
+** local
+*** skimmingEff
+*** effectiveXSec
+*** scalefactor
+** automate
+*** output norm
+*** output log
+*** output postscript
+*** output prob
+*** isdata
+
+
+
+
+
+

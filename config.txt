@@ -1,0 +1,7 @@
+luminosity 100
+files/test.root blah.root 100 100
+files/test1.root blah.root 100 100
+files/test2.root blah.root 100 100
+files/ttbar.root files/tester.root 100 100
+files/zprimeCos.root yo.root 100 100
+aldkjfalk not.root 100 100

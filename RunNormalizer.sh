@@ -10,7 +10,7 @@ for line in $(cat $1); do
   echo "--------------------------------------------------------------------------------------------------------";
   echo "";
   cd $line
-  ./BSM3GPlotter Normalizer.in
+#  ./BSM3GPlotter Normalizer.in
   cd ./../..
 done
 

@@ -14,33 +14,19 @@ int main (int argc, char *argv[]) {
 
   //---obtain the user defined inputs
 
-  cout << endl << "BSM3GPlotter Message: Grabbing user defined input parameters (i.e. root files, directories, cross-sections, etc.)" << endl << endl;
-
   beginJob();
   getInputs(fname);
-
-  cout << endl << "BSM3GPlotter Message: Finished grabbing configurable inputs. Calculating cut efficiencies and storing histograms." << endl << endl;
 
   if(inRootFiles.size() > 0) {
     grabYieldsANDgrabHistos();
     calculateEfficienciesAndErrors();
-
-    cout << endl << "BSM3GPlotter Message: Finished calculating cut efficiencies and storing histograms. Performing normalization of histograms to cross-section times lumi." << endl << endl;
-
     NormalizeHistos();
-
-    cout << endl << "BSM3GPlotter Message: Finished normalizing histograms to cross-section times lumi. Performing normalization of histograms to 1." << endl << endl;
-
     CreateProbHistos();
   }
 
-  cout << endl << "BSM3GPlotter Message: Finished performing proper normalization of histograms. Creating cut flow eff table (log file)" << endl << endl;
-
   createLogFile();
-
-  cout << endl << "BSM3GPlotter Message: Finished creating cut flow eff table. Closing opened root files. " << endl << endl;
   theCurrentFile->Close();
-  cout << endl << "BSM3GPlotter Message: Finished closing root files." << endl << endl;
+
 }
 
 //---function used to obtain the configurable inputs from the .in files
@@ -145,23 +131,6 @@ void read_info(string filename) {
 
 //---function called once just before obtaining user inputs. It clears the vectors and initializes parameters.
 void beginJob() {
-
-  inRootFiles.clear();
-  inDirectories.clear();
-  inProcess.clear();
-  inScaleFactor.clear();
-  inScaleFactorError.clear();
-  x_section.clear();
-  theCumulativeEfficiency.clear();
-  RelativeEffVector.clear();
-  RelativeEffErrorVector.clear();
-  TotalEffVector.clear();
-  TotalEffErrorVector.clear();
-  theEventsAnalyzed.clear();
-  theEventsPassing.clear();
-  theHistNameStrings.clear();
-  HistList.clear();
-  HistList2.clear();
   nHistList=0;
   nHistList2=0;
   nHistos=0;
@@ -172,9 +141,6 @@ void beginJob() {
   MaxEventsAnalyzed = 0;
   lumi = 0.0;
   lumi_string = "0.0";
-
-  cout << "     BSM3GPlotter 'beginJob' function: Vectors have been cleared and variables initialized." << endl;
-
 }
 
 //---function called once just before obtaining user inputs. It clears the vectors.
@@ -187,7 +153,7 @@ void grabYieldsANDgrabHistos() {
   for(int j=0;j<inRootFiles.size();j++) {
     int num=0; // keep track of total number of histograms per root file (later we will require each root file to contain the same histograms)
 
-//    TFile *theCurrentFile = (TFile*) TFile::Open (inRootFiles.at(j).c_str()); // open root file
+
     theCurrentFile = (TFile*) TFile::Open (inRootFiles.at(j).c_str()); // open root file
     if (!theCurrentFile) {
       cerr << "     BSM3GPlotter 'grabYieldsANDgrabHistos' function: Error!! --> Can't open input file " << inRootFiles.at(j).c_str() << " (or file does not exist)" << endl;
@@ -195,25 +161,9 @@ void grabYieldsANDgrabHistos() {
     } else {
       cout << "     BSM3GPlotter 'grabYieldsANDgrabHistos' function: input file '" << inRootFiles.at(j).c_str() << "' has been successfully opened." << endl;
     }
-    theCurrentFile->cd(inDirectories.at(j).c_str()); // cd to appropriate directory
-    TDirectory *current_sourcedir = gDirectory;
-    TIter nextkey( current_sourcedir->GetListOfKeys() );
-    TKey *key;
-
-    cout << "     BSM3GPlotter 'grabYieldsANDgrabHistos' function: Looping over list of histograms." << endl;
-    // loop over keys(ROOT objects) within the root file
-    while((key = (TKey*)nextkey())) {
-      TObject *obj = key->ReadObj();
-
-      
-      if ( obj->IsA()->InheritsFrom( "TH1" ) ) { // only consider 1D histograms within the root file
-        string histname = obj->GetName();
-        TH1 *hobj = (TH1*)obj;
+        if( (hobj->GetYaxis()->GetNbins() == 1) && (histname == "Events") ) {        // use the "Events" histogram to calculatppe cumulative efficiencies
 
 
-        if( (hobj->GetYaxis()->GetNbins() == 1) && (histname == "Events") ) {        // use the "Events" histogram to calculate cumulative efficiencies
-
-          // "Events" histogram contains 2 filled bins: bin 1 is the # of events analyzed; bin 2 is the # passing specified cuts
           if(hobj->GetBinContent(1) == 0) {
             cerr << "     BSM3GPlotter 'grabYieldsANDgrabHistos' function: Error!! --> 'Events' histogram contains zero entries in bin 1: 0 events were analyzed ..." << endl;
             exit(1);
@@ -279,7 +229,7 @@ void calculateEfficienciesAndErrors() {
   float cumulativeEfficiency = 1.0;
   float efferror2 = 0.0;
 
-  // calculate relative and cumulative cut efficiencies
+  // Calculate relative and cumulative cut efficiencies
   for (int i=0;i<theCumulativeEfficiency.size(); i++) {
     numerator = (int)((MaxEventsAnalyzed * theCumulativeEfficiency.at(i))+0.5);
     if(i==0) {denominator = (int)(MaxEventsAnalyzed + 0.5);}
@@ -402,12 +352,8 @@ void calculateEfficienciesAndErrors() {
 //---function called once just before obtaining user inputs. It clears the vectors.
 void NormalizeHistos() {
 
-  //cout << "number of histograms = " << HistList.size() << endl;
-  cout << "     BSM3GPlotter 'NormalizeHistos' function: Extracting histograms from the vectors for proper normalization." << endl;
-
   if(( nHistList % inRootFiles.size() == 0 )) {
     for(int i=0; i<nHistos; i++) {
-      cout << "     BSM3GPlotter 'NormalizeHistos' function: Histogram with name '" << HistList.at(i)->GetName() << "' is being properly normalized." << endl;
       string histname = HistList.at(i)->GetName();
       string histoEffyName = "hEffy_" + inProcess.at(0);
       TH1F *h = (TH1F*)HistList.at(i);
@@ -497,15 +443,11 @@ void NormalizeHistos() {
 
 }
 
-//---function called once just before obtaining user inputs. It clears the vectors.
 void CreateProbHistos() {
-
-  cout << "     BSM3GPlotter 'CreateProbHistos' function: Extracting histograms from the vectors in order to normalize to 1." << endl;
 
   if(( nHistList2 % inRootFiles.size() != 0 )) return;
 
   for(int i=0; i<nHistos; i++) {
-    cout << "     BSM3GPlotter 'CreateProbHistos' function: Histogram with name '" << HistList2.at(i)->GetName() << "' is being normalized to 1." << endl;
     string histname = HistList2.at(i)->GetName();
     TH1F *h = (TH1F*)HistList2.at(i);
     h->Sumw2();
