@@ -457,8 +457,7 @@ void NormalizeHistos() {
 	  if(IsData == "0") {
 	    if(hh->Integral(0,(hh->GetXaxis()->GetNbins()+1)) > 0) {hh->Scale(1.0 / theEventsPassing.at(j) * x_section.at(j) * lumi * effSkim);}
 	    for(int jfile=0;jfile<=j;jfile++) {
-	      TH1F *hhEffy = new TH1F(histoEffyName2.c_str(),histoEffyName2.c_str(),
-				      hh->GetXaxis()->GetNbins(),hh->GetXaxis()->GetXmin(),hh->GetXaxis()->GetXmax());
+	      TH1F *hhEffy = new TH1F(histoEffyName2.c_str(),histoEffyName2.c_str(), hh->GetXaxis()->GetNbins(),hh->GetXaxis()->GetXmin(),hh->GetXaxis()->GetXmax());
 	      for(int ibin=0; ibin<=(hhEffy->GetXaxis()->GetNbins() + 1); ibin++) {
 		hhEffy->SetBinContent(ibin,RelativeEffVector.at(jfile));
 		hhEffy->SetBinError(ibin,0);
@@ -614,3 +613,13 @@ void createLogFile() {
 
 }
 
+
+
+
+void adding() {
+  TString path( (char*)strstr( target->GetPath(), ":"));
+  path.Remove(0,2);
+
+
+
+}
