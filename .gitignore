@@ -3,3 +3,5 @@ PhysicsPlotter/*
 #*#
 *.out
 files/*
+*root
+Plotter

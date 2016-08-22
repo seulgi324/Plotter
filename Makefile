@@ -13,7 +13,6 @@ ROOTCFLAGS = $(shell root-config --cflags)
 ROOTLIBS = $(shell root-config --libs)
 
 # Linux with egcs
-DEFINES =
 
 CXX = g++
 CXXFLAGS += $(ROOTCFLAGS) -I./
@@ -24,21 +23,25 @@ LDFLAGS += $(ROOTLIBS)
 SOFLAGS = -shared
 LIBS =
 
+SRCDIR = src
+OBJDIR = obj
+
 #------------------------------------------------------------------------------
-SOURCES = $(wildcard src/*.cc)
-OBJECTS = $(SOURCES:.$(SrcSuf)=.$(ObjSuf))
+SOURCES = $(wildcard $(SRCDIR)/*.cc)
+OBJECTS = $(SOURCES:$(SRCDIR)/%.cc=$(OBJDIR)/%.o)
 #------------------------------------------------------------------------------
 
-all: BSM3G_TNT_Analyzer
+all: Plotter $(OBJECTS)
 
-%.o: %.c
-	$(CXX) $(CXXFLAGS) -c $<
+$(OBJDIR)/%.o: $(SRCDIR)/%.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-%: %.o
+%: $(OBJDIR)/%.o
 	$(LD) $(LDFLAGS) -o $@ $< $(LIBS)
 
 clean:
 	@echo "Cleaning..."
+	@ls $(OBJDIR)
 	@rm -f $(OBJECTS)
 
 .SUFFIXES: .$(SrcSuf) .cc .o .so

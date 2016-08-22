@@ -1,5 +1,0 @@
-luminosity 100
-files/test.root blah.root 100 100
-files/test1.root blah.root 100 100
-files/test2.root blah.root 100 100
-
