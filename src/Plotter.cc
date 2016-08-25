@@ -236,7 +236,7 @@ void MergeRootfile( TDirectory *target, Plot& plotter ) {
       TH1 *h1 = (TH1*)obj;
       h1->Sumw2();
       int spot = 0;
-      h1->Scale(plotter.CumulativeEfficiency.at(spot)/plotter.events.at(spot) * plotter.xsec.at(spot)* lumi* plotter.skim.at(spot));
+      if(!plotter.isData) h1->Scale(plotter.CumulativeEfficiency.at(spot)/plotter.events.at(spot) * plotter.xsec.at(spot)* lumi* plotter.skim.at(spot));
 
       TFile *nextsource = (TFile*)sourcelist->After( first_source );
       
@@ -247,7 +247,8 @@ void MergeRootfile( TDirectory *target, Plot& plotter ) {
 	if (key2) {
 	  TH1 *h2 = (TH1*)key2->ReadObj();
 	  h2->Sumw2();
-	  h1->Add( h2, plotter.CumulativeEfficiency.at(spot)/plotter.events.at(spot) * plotter.xsec.at(spot)* lumi* plotter.skim.at(spot));
+	  double scale = (plotter.isData) ? 1.0 : plotter.CumulativeEfficiency.at(spot)/plotter.events.at(spot) * plotter.xsec.at(spot)* lumi* plotter.skim.at(spot);
+	  h1->Add( h2, scale);
 	  delete h2;
 	  
 	}
@@ -257,9 +258,9 @@ void MergeRootfile( TDirectory *target, Plot& plotter ) {
       ////  To gain back Poisson error, uncomment this line /////
       ////////////////////////////////////////////////////////////
 
-      // for(int ibin=0; ibin < (h1->GetXaxis()->GetNbins() + 1); ibin++) {
-      // 	h1->SetBinError(ibin, sqrt(pow(h1->GetBinError(ibin),2.0) + h1->GetBinContent(ibin)) );
-      // }
+      for(int ibin=0; ibin < (h1->GetXaxis()->GetNbins() + 1); ibin++) {
+      	h1->SetBinError(ibin, sqrt(pow(h1->GetBinError(ibin),2.0) + h1->GetBinContent(ibin)) );
+      }
 
     }
     else if ( obj->IsA()->InheritsFrom( TTree::Class() ) ) {
@@ -319,54 +320,95 @@ void MergeRootfile( TDirectory *target, Plot& plotter ) {
 }
 
  
+// ///Main plot
 
-void calculateEfficienciesAndErrors(int i, double cumulEff, Plot& plot) {
+//       TPad *c1_2 = new TPad("c1_2", "newpad",0.01,0.33,0.99,0.99);
+//       c1_2->Draw();
+//       c1_2->cd();
+//       c1_2->Range(-200,-13.87376,1133.333,1389.866);
+//       c1_2->SetFillColor(0);
+//       c1_2->SetBorderMode(0);
+//       c1_2->SetBorderSize(2);
+//       c1_2->SetTickx(1);
+//       c1_2->SetTicky(1);
+//       c1_2->SetLeftMargin(0.15);
+//       c1_2->SetBottomMargin(0.01);
+//       c1_2->SetFrameFillStyle(0);
+//       c1_2->SetFrameBorderMode(0);
+//       c1_2->SetFrameFillStyle(0);
+//       c1_2->SetFrameBorderMode(0);
 
-  double numerator;
-  double denominator;
-  double relEff;
-  double efferror;
+//       data->SetMarkerStyle(20);
+//       data->SetLineColor(1);
+//       data->GetXaxis()->SetLabelFont(42);
+//       data->GetXaxis()->SetLabelOffset(0.007);
+//       data->GetXaxis()->SetLabelSize(0.11);
+//       data->GetXaxis()->SetTitleSize(0.12);
+//       data->GetXaxis()->SetTitleOffset(0.9);
+//       data->GetXaxis()->SetTitleFont(42);
 
+//       data->GetYaxis()->SetTitle("Events");
+//       data->GetYaxis()->SetLabelFont(42);
+//       data->GetYaxis()->SetLabelOffset(0.007);
+//       data->GetYaxis()->SetLabelSize(0.05);
+//       data->GetYaxis()->SetTitleSize(0.06);
+//       data->GetYaxis()->SetTitleOffset(1.1);
+//       data->GetYaxis()->SetTitleFont(42);
+//       data->GetZaxis()->SetLabelFont(42);
+//       data->GetZaxis()->SetLabelOffset(0.007);
+//       data->GetZaxis()->SetLabelSize(0.05);
+//       data->GetZaxis()->SetTitleSize(0.06);
+//       data->GetZaxis()->SetTitleFont(42);
+//       data->Draw("ep");
+//       hs->Draw("same");
 
-  // Calculate relative and cumulative cut efficiencies
-  numerator = rounder(cumulEff);
-  denominator = rounder(plot.CumulativeEfficiency.at(i)); ///set cumul to 1 initially
+//       for(int bin=0; bin < data->GetXaxis()->GetNbins(); bin++) {
+//         mcY[bin] = hError->GetBinContent(bin+1);
+//         mcErrorY[bin] = hError->GetBinError(bin+1);
+//         mcX[bin] = hError->GetBinCenter(bin+1);
+//         mcErrorX[bin] = hError->GetBinWidth(bin+1) * 0.5;
+//       }
+//       TGraphErrors *mcError = new TGraphErrors(h->GetXaxis()->GetNbins(),mcX,mcY,mcErrorX,mcErrorY);
+//       mcError->SetLineWidth(0);
+//       mcError->SetFillColor(1);
+//       mcError->SetFillStyle(3002);
+//       mcError->Draw("sameE2");
 
-  if(numerator > 0) {
-    relEff = numerator / denominator;
-    efferror = sqrt(relEff*(1.-relEff)/denominator);
-  } else {
-    relEff = 0.0;
-    efferror = (denominator != 0.0) ? 1.0 / denominator : 0.0;
-  }
+//       hhh->SetMarkerStyle(20);
+// //      hhh->SetMarkerSize(0.0);
+//       hhh->SetLineColor(1);
+//       hhh->Draw("samee1p");
 
-  /* binomial uncertainties do not work when the efficiency gets close to 1 or 0 (e.g. efficiency cannot
-     be 99 +- 2 because the efficiency cannot be e.g. 101) ... in these cases, use bayesian */
-  if(((relEff + efferror) > 1.) || ((relEff - efferror) < 0.)){
-    TH1F theNumHisto("theNumHisto","theNumHisto",1,0,1);
-    theNumHisto.SetBinContent(1,numerator);
-    theNumHisto.Sumw2();
-    TH1F theDenHisto("theDenHisto","",1,0,1);
-    theDenHisto.SetBinContent(1,denominator);
-    theDenHisto.Sumw2();
-    TGraphAsymmErrors bayesEff;
-    bayesEff.BayesDivide(&theNumHisto, &theDenHisto,"b");
-    efferror = (bayesEff.GetErrorYhigh(0) > bayesEff.GetErrorYlow(0)) ? bayesEff.GetErrorYhigh(0) : bayesEff.GetErrorYlow(0);
-  }
-  if(relEff == 1.0) efferror = 0;
+//       legend->SetTextFont(42);
+//       legend->SetTextSize(0.04195804);
+//       legend->SetLineColor(1);
+//       legend->SetLineStyle(1);
+//       legend->SetLineWidth(1);
+//       legend->SetFillColor(0);
+//       legend->SetFillStyle(1001);
+//       legend->SetBorderSize(0);
+//       legend->SetFillColor(kWhite);
+//       legend->Draw();
 
-  //inscalefactors???
+//       TPaveText *pt = new TPaveText(0.2620189,0.9409833,0.662649,0.9913117,"brNDC");
+//       pt->SetBorderSize(0);
+//       pt->SetFillColor(0);
+//       pt->SetLineColor(0);
+//       pt->SetTextSize(0.05297732);
+//       string TitleString = "CMS Preliminary, L_{int} = " + lumi_string + " fb^{-1}, #sqrt{s} = 13 TeV";
+//       TText *text = pt->AddText(TitleString.c_str());
+//       text->SetTextFont(42);
+//       pt->Draw();
 
-  // recalculate efficiencies and errors incorporating scale factors
-  relEff *= plot.scaleFactor.at(i);
-  if(numerator > 0) {
-    efferror = sqrt(pow(efferror*plot.scaleFactor.at(i),2.0) + pow(plot.scaleFactorError.at(i)*relEff,2.0));
-  } else {
-    efferror = (denominator != 0) ? plot.scaleFactor.at(i) / denominator : 0.0;
-  }
+//       c1_2->Modified();
+//       c->cd();
+//       c->Modified();
+//       c->cd();
+//       c->SetSelected(c);
+//       c->Write();
+//       c->Close();
 
-  plot.RelativeEffVector.at(i) = relEff;
-  plot.RelativeEffErrorVector.at(i) = efferror;
-  plot.CumulativeEfficiency.at(i) = cumulEff;
-
-}
+//       delete hhh;
+//       delete hError;
+//       delete hData;
+//       delete hMC;

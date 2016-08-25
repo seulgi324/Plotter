@@ -15,10 +15,10 @@ ROOTLIBS = $(shell root-config --libs)
 # Linux with egcs
 
 CXX = g++
-CXXFLAGS += $(ROOTCFLAGS) -I./
+CXXFLAGS += $(ROOTCFLAGS) -I./ -g
 
 LD = g++
-LDFLAGS += $(ROOTLIBS)
+LDFLAGS += $(ROOTLIBS) -g
 
 SOFLAGS = -shared
 LIBS =
@@ -43,5 +43,9 @@ clean:
 	@echo "Cleaning..."
 	@ls $(OBJDIR)
 	@rm -f $(OBJECTS)
+
+job: Stacker
+	./Stacker config.stack
+	root -l open.C
 
 .SUFFIXES: .$(SrcSuf) .cc .o .so

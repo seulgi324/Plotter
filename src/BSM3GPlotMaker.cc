@@ -5,6 +5,8 @@
 
 #include "BSM3GPlotMaker.h"
 
+using namespace std;
+
 //---main function
 int main (int argc, char *argv[]) {
 
@@ -15,26 +17,23 @@ int main (int argc, char *argv[]) {
 BSM3GPlotMaker::BSM3GPlotMaker(char* fname) {
 
   //---obtain the user defined inputs
-  std::cout << "" << std::endl;
-  std::cout << "BSM3GPlotMaker Message: Grabbing user defined input parameters (i.e. root files, directories, cross-sections, etc.)" << std::endl;
-  std::cout << "" << std::endl;
+  std::cout << endl << "BSM3GPlotMaker Message: Grabbing user defined input parameters (i.e. root files, directories, cross-sections, etc.)" << std::endl << endl;
+
   beginJob();
   getInputs(fname);
-  std::cout << "" << std::endl;
-  std::cout << "BSM3GPlotMaker Message: Finished grabbing configurable inputs." << std::endl;
-  std::cout << "" << std::endl;
+
+  std::cout << endl << "BSM3GPlotMaker Message: Finished grabbing configurable inputs." << std::endl << endl;
+
   if(inRootFiles.size() > 0) {
     grabYieldsANDgrabHistos();
     makePlots();
   }
-  std::cout << "" << std::endl;
-  std::cout << "BSM3GPlotMaker Message: Finished making plots. Closing opened root files." << std::endl;
-  std::cout << "" << std::endl;
-  endJob();
-  std::cout << "" << std::endl;
-  std::cout << "BSM3GPlotMaker Message: Finished closing root files." << std::endl;
-  std::cout << "" << std::endl;
 
+  std::cout << endl << "BSM3GPlotMaker Message: Finished making plots. Closing opened root files." << std::endl << endl;
+
+  endJob();
+
+  std::cout << endl <<  "BSM3GPlotMaker Message: Finished closing root files." << std::endl << endl;
 }
 
 //---function used to obtain the configurable inputs from the .in files
@@ -164,13 +163,9 @@ void BSM3GPlotMaker::grabYieldsANDgrabHistos() {
             string histoName1 = histname + "_" + "After" + inProcess.at(j) + "_1";
             string histoName2 = histname + "_" + "After" + inProcess.at(j) + "_2";
           }
-          //std::cout << "histoName1 = " << histoName1 << std::endl;
-          //std::cout << "histoName2 = " << histoName2 << std::endl;
 
           TH1F *h1 = new TH1F(histoName1.c_str(),histoName1.c_str(),hobj->GetXaxis()->GetNbins(),hobj->GetXaxis()->GetXmin(),hobj->GetXaxis()->GetXmax());
           TH1F *h2 = new TH1F(histoName2.c_str(),histoName2.c_str(),hobj->GetXaxis()->GetNbins(),hobj->GetXaxis()->GetXmin(),hobj->GetXaxis()->GetXmax());
-          //std::cout << "h1 = " << h1->GetName() << std::endl;
-          //std::cout << "h2 = " << h2->GetName() << std::endl;
 
           for(int i=0; i<=(h1->GetXaxis()->GetNbins() + 1); i++) {
             h1->SetBinContent(i,hobj->GetBinContent(i));
@@ -383,6 +378,8 @@ void BSM3GPlotMaker::makePlots() {
 
       c1_1->Modified();
       c->cd();
+
+
 
       TPad *c1_2 = new TPad("c1_2", "newpad",0.01,0.33,0.99,0.99);
       c1_2->Draw();
