@@ -87,7 +87,7 @@ void read_info(string, string&, map<string, Normer*>&);
 int getModTime(const char*);
 bool shouldAdd(string, string);
 
-void CreateStack( TDirectory*, Plot&);
+void CreateStack( TDirectory*, Plot&, ofstream&);
 THStack* sortStack(THStack*);
 TLegend* createLeg(TList* bgl=NULL, TList* sigl=NULL);
 TGraphErrors* createError(TH1*, bool);

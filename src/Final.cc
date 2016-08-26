@@ -22,9 +22,9 @@ int main(int argc, char* argv[]) {
     read_info(argv[i], output, plots);
   }
 
-
+  int totalfiles = 0;
+  vector<string> datan, bgn, sign;
   for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); ++it) {
-    cout << "here" << endl;
     if(! it->second->use) continue;
     it->second->lumi = lumi;
     it->second->print();
@@ -40,13 +40,29 @@ int main(int argc, char* argv[]) {
     final->SetTitle(it->second->output.c_str());
     it->second->MergeRootfile(final);
     fullPlot.addFile(it->second->type, final);
+    totalfiles++;
+    if(it->second->type == "data") datan.push_back(it->second->output);
+    else if(it->second->type == "bg") bgn.push_back(it->second->output);
+    else if(it->second->type == "sig") sign.push_back(it->second->output);
   }
   TFile* final = new TFile(output.c_str(), "RECREATE");
+  ofstream logfile;
+  logfile.open("log.txt", ios::out);
+  logfile << "\\begin{tabular}{ | l |";
+  for(int i = 0; i < totalfiles; i++) {
+    logfile << " c |";
+  }
+  logfile << " }" << endl << "\\hline" << endl << "Process";
+  for(vector<string>::iterator it = datan.begin(); it != datan.end(); it++) logfile << " & " << it->substr(0, it->length()-5);
+  for(vector<string>::iterator it = bgn.begin(); it != bgn.end(); it++) logfile << " & " << it->substr(0, it->length()-5);
+  for(vector<string>::iterator it = sign.begin(); it != sign.end(); it++) logfile << " & " << it->substr(0, it->length()-5);
+  logfile << "\\\\ \\hline" << endl;
 
   gStyle = stylez.getStyle();
-  CreateStack(final, fullPlot);
+  CreateStack(final, fullPlot, logfile);
   final->Close();
-
+  logfile << "\\end{tabular}" << endl;
+  logfile.close();
 }
 
 
@@ -70,12 +86,11 @@ void read_info(string filename, string& output, map<string, Normer*>& plots) {
       stemp.push_back(*iter);
 
     }
-    cout << "pass" << endl;
+
     if(stemp.size() >= 2) {
       if(stemp[0].find("lumi") != string::npos) lumi = stod(stemp[1]);
       else if(stemp[0].find("output") != string::npos) output = stemp[1];
       else if(plots.find(stemp[1]) == plots.end()) { 
-	cout << "hereplot" << endl;
 	Normer* tmpplot = new Normer();
 	tmpplot->input.push_back(stemp[0]);
 	tmpplot->output = stemp[1];
@@ -90,19 +105,12 @@ void read_info(string filename, string& output, map<string, Normer*>& plots) {
 	  tmpplot->isData = true;
 	  tmpplot->type = "data";
 	}    
-	
 	plots[stemp[1]] = tmpplot;
-	plots[stemp[1]]->print();
       } else {
-	cout << "1" << endl;
 	plots[stemp[1]]->input.push_back(stemp[0]);
-	cout << "2" << endl;
 	plots[stemp[1]]->use *= shouldAdd(stemp[0], stemp[1]);
-	cout << "3" << endl;
 	plots[stemp[1]]->CumulativeEfficiency.push_back(1.);
-	cout << "4" << endl;
 	plots[stemp[1]]->scaleFactor.push_back(1.);
-	cout << "5" << endl;
 	plots[stemp[1]]->scaleFactorError.push_back(0.);
 	plots[stemp[1]]->integral.push_back(0);
 	if(stemp.size() == 2) {
@@ -144,7 +152,7 @@ int getModTime(const char *path) {
 /*-----------------------------*/
 
 
-void CreateStack( TDirectory *target, Plot& plot) {
+void CreateStack( TDirectory *target, Plot& plot, ofstream& logfile) {
 
   TList* datalist = plot.FileList[0];
   TList* bglist = plot.FileList[1];
@@ -160,6 +168,41 @@ void CreateStack( TDirectory *target, Plot& plot) {
   Bool_t status = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
 
+
+  ///try to find events to calculate efficiency
+  TH1F* events;
+  current_sourcedir->GetObject("Events", events);
+
+  if(events) {
+    logfile << current_sourcedir->GetName();
+    logfile << " & " << fixed << events->GetBinContent(2) << setprecision(1);
+
+    TFile *nextsource = (TFile*)datalist->After( dataStart );
+    while( nextsource) {
+      nextsource->cd(path);
+      gDirectory->GetObject("Events", events);
+      logfile << " & " << fixed << events->GetBinContent(2) << setprecision(1);
+      nextsource = (TFile*)datalist->After( nextsource );
+    }
+
+    nextsource = (TFile*)bglist->First();
+    while ( nextsource ) {
+      nextsource->cd(path);
+      gDirectory->GetObject("Events", events);
+      logfile << " & " << fixed << events->GetBinContent(2) << setprecision(1) << " $\\pm$" << fixed << events->GetBinError(2) << setprecision(1);
+      nextsource = (TFile*)bglist->After( nextsource );
+    }
+    nextsource = (TFile*)sglist->First();
+    while ( nextsource ) {
+      nextsource->cd(path);
+      gDirectory->GetObject("Events", events);
+      logfile << " & " << fixed << events->GetBinContent(2) << setprecision(1) << " $\\pm$" << fixed << events->GetBinError(2) << setprecision(1);
+      nextsource = (TFile*)sglist->After( nextsource );
+    }
+    logfile << " \\\\ \\hline" << endl;
+  }
+
+  delete events;
 
   // loop over all keys in this directory
   TChain *globChain = 0;
@@ -301,7 +344,7 @@ void CreateStack( TDirectory *target, Plot& plot) {
       target->cd();
       TDirectory *newdir = target->mkdir( obj->GetName(), obj->GetTitle() );
 
-      CreateStack( newdir, plot );
+      CreateStack( newdir, plot, logfile );
 
     } else if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
       continue;

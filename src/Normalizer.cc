@@ -62,12 +62,10 @@ void Normer::print() {
 void Normer::MergeRootfile( TDirectory *target) {
 
   TList* sourcelist = FileList;
-  cout << "start" << endl;
   TString path( (char*)strstr( target->GetPath(), ":" ) );
   path.Remove( 0, 2 );
 
   TFile *first_source = (TFile*)sourcelist->First();
-  cout << "first source" << endl;
   first_source->cd( path );
   TDirectory *current_sourcedir = gDirectory;
   //gain time, do not add the objects in the list in memory
@@ -80,6 +78,7 @@ void Normer::MergeRootfile( TDirectory *target) {
   current_sourcedir->GetObject("Events", events);
 
   if(events) {
+    cout << "events" << endl;
     int nplot = 0;
 
     integral.at(nplot) = events->GetBinContent(2);
@@ -103,7 +102,6 @@ void Normer::MergeRootfile( TDirectory *target) {
   TIter nextkey( current_sourcedir->GetListOfKeys() );
   TKey *key, *oldkey=0;
   while ( (key = (TKey*)nextkey())) {
-    cout << key->GetName() << endl;
     //keep only the highest cycle number for each key
     if (oldkey && !strcmp(oldkey->GetName(),key->GetName())) continue;
 
