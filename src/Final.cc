@@ -40,7 +40,7 @@ struct Normer {
   bool use, isData=false;
 
   void print() {
-    cout <<endl <<  " =========== " << output << " =========== " << endl;
+    cout << " =========== " << output << " =========== " << endl;
     for(int i = 0; i < input.size(); ++i) {
       cout << input.at(i) ;
       if(isData) cout << endl;
@@ -116,8 +116,15 @@ void MergeRootfile( TDirectory*, Normer&);
 void CreateStack( TDirectory*, Plot&);
 THStack* sortStack(THStack*);
 TLegend* createLeg(TList* bgl=NULL, TList* sigl=NULL);
-TGraphErrors* createError(TH1* error, bool ratio);
-void sizePad(double ratio, TVirtualPad* pad, bool isTop);
+TGraphErrors* createError(TH1*, bool);
+void sizePad(double, TVirtualPad*, bool);
+TF1* createLine(TH1*);
+void setXAxisTop(TH1*, TH1*, THStack*);
+void setYAxisTop(TH1*, TH1*, double, THStack*);
+void setXAxisBot(TH1*, TAxis*, double);
+void setYAxisBot(TH1*, double);
+
+
 
 Style stylez;
 
@@ -147,7 +154,6 @@ int main(int argc, char* argv[]) {
     final->SetTitle(it->second->output.c_str());
     MergeRootfile(final, *it->second);
     fullPlot.addFile(it->second->type, final);
-    cout << final->GetTitle() << endl;
   }
   TFile* final = new TFile(output.c_str(), "RECREATE");
 
@@ -467,100 +473,59 @@ void CreateStack( TDirectory *target, Plot& plot) {
       /*------------signal--------------*/
 
       /*--------------write out------------*/
+
+      ///data
       datahist->SetMarkerStyle(20);
       datahist->SetLineColor(1);
 
+      ///stack
       hs = sortStack(hs);
-      int lastbin = 0, firstbin = 1;
-      for(int i = 0; i < datahist->GetXaxis()->GetNbins(); i++) {
-	if(datahist->GetBinContent(i+1) != 0 || error->GetBinContent(i+1) != 0) lastbin = i+1;
-	if(datahist->GetXaxis()->GetXmin() < 0 && firstbin == 1 && (datahist->GetBinContent(i+1) != 0 || error->GetBinContent(i+1) != 0)) firstbin = i;
-      }
-      double max = (error->GetMaximum() > datahist->GetMaximum()) ? error->GetMaximum() : datahist->GetMaximum();
 
+      ///legend
       TLegend* legend = createLeg(hs->GetHists());
       legend->AddEntry(datahist, "Data", "f");
+      
+      //error
       TGraphErrors* errorstack = createError(error, false);
-      errorstack->GetXaxis()->SetRange(firstbin,lastbin+1);
-
       TGraphErrors* errorratio = createError(error, true);
+      
+      // data/mc
       TH1D* data_mc = (TH1D*)datahist->Clone("data_mc");
       data_mc->Divide(error);
-      double divmin = 0.0, divmax = 2.99;
-      double low=2.99, high=0.0, tmpval;
-      for(int i = 0; i < data_mc->GetXaxis()->GetNbins(); i++) {
-	tmpval = data_mc->GetBinContent(i+1);
-	if(tmpval < 2.99 && tmpval > high) {high = tmpval;}
-	if(tmpval > 0. && tmpval < low) {low = tmpval;}
-      }
-      double val = 0.0;
-      if(low > 1) {
-	val = 1 / (high - 1.);
-      } else if (high < 1) {
-	val = 1 / (1/low -1.);
-      } else {
-	val = 1 / (1/low -1.);
-	val = (1/(high -1.) < val) ? 1/(high-1) : val;
-      }
-      if(val < 1);
-      else if(val < 2) {
-	divmin = 1.0/2.0;
-	divmax = 1/divmin;
-      } else if(val < 4) {
-	divmin = 3.0/4.0;
-	divmax = 1/divmin;
-      } else if(val < 8) {
-	divmin = 7.0/8.0;
-	divmax = 1/divmin;
-      } else {
-	divmin = 15.0/16.0;
-	divmax = 1/divmin;
-      }
-       
-      data_mc->SetMinimum(divmin);
-      data_mc->SetMaximum(divmax);
 
-      TF1 *PrevFitTMP = new TF1("PrevFitTMP","pol0",-10000,10000);
-      PrevFitTMP->SetFillColor(19);
-      PrevFitTMP->SetFillStyle(0);
-      PrevFitTMP->SetMarkerStyle(20);
-      PrevFitTMP->SetLineColor(2);
-      PrevFitTMP->SetLineWidth(1);
-      PrevFitTMP->SetParameter(0,1.0);
-      PrevFitTMP->SetParError(0,0);
-      PrevFitTMP->SetParLimits(0,0,0);
-      data_mc->GetListOfFunctions()->Add(PrevFitTMP);
+      //line
+      TF1 *PrevFitTMP = createLine(data_mc);
 
-      TAxis* yaxis = data_mc->GetYaxis();
-      yaxis->SetLabelSize(yaxis->GetLabelSize()*3);
-      TAxis* xaxis = data_mc->GetXaxis();
-      xaxis->SetLabelSize(xaxis->GetLabelSize()*3);
+      double padratio = 3, heightratio = 15;
+
+
+
 
       target->cd();
+
+      if(hs->GetNhists() == 0) continue;
 
       TCanvas *c = new TCanvas(h1->GetName(), h1->GetName());//403,50,600,600);
       c->Divide(1,2);
       c->cd(1);
-      sizePad(3, gPad, true);
+      sizePad(padratio, gPad, true);
+
       hs->Draw();
-      double heightratio = 15.;
-      if(hs->GetNhists() != 0) hs->GetXaxis()->SetRange(firstbin,lastbin+1);
-      if(hs->GetNhists() != 0) hs->GetYaxis()->SetTitle("Events");
-      if(hs->GetNhists() != 0) hs->SetMaximum(max*(1.0/heightratio + 1));
       datahist->Draw("sameep");
       errorstack->Draw("2");
       legend->Draw();
-      
-
+      setXAxisTop(datahist, error, hs);
+      setYAxisTop(datahist, error, heightratio, hs);
 
       c->cd(2);
-      if(gPad->HasFixedAspectRatio()) cout << "fixed";
-      sizePad(3, gPad, false);
+      sizePad(padratio, gPad, false);
+
       data_mc->Draw("ep1");
-      data_mc->GetXaxis()->SetRange(firstbin,lastbin+1);
       errorratio->Draw("2");
-      yaxis->Draw();
-      xaxis->Draw();
+      setXAxisBot(data_mc, hs->GetXaxis(), padratio);
+      setYAxisBot(data_mc, padratio);
+
+
 
       c->cd();
       c->Write(c->GetName());
@@ -570,10 +535,10 @@ void CreateStack( TDirectory *target, Plot& plot) {
       delete datahist;
       delete sighist;
       delete hs;
-      delete h1;
       delete legend;
       delete errorstack;
       delete errorratio;
+      delete PrevFitTMP;
 
     } else if ( obj->IsA()->InheritsFrom( TDirectory::Class() ) ) {
       target->cd();
@@ -659,17 +624,76 @@ void sizePad(double ratio, TVirtualPad* pad, bool isTop) {
   else   pad->SetPad("bottom", "bottom", 0, 0.05, 1, 1 / (1.0 + ratio), 0);
 }
 
-// void inflateLabels(double ratio, TVirtualPad* pad) {
-//   styler->SetLabelSize(0.05, "xy");
-//   styler->SetTitleSize(0.12,"xy");
-//   styler->SetLabelOffset(0.007, "xy");
-//   styler->SetTitleOffset(0.9, "xy");
-//   styler->SetTitleFont(42,"xy");
-//   styler->SetLabelFont(42, "xy");
-
-//   styler->SetPadBottomMargin(0.05);
-//   styler->SetPadTopMargin(0.05);
-//   styler->SetPadLeftMargin(0.15);
-//   styler->SetPadRightMargin(0.05);
+TF1* createLine(TH1* data_mc) {
+  TF1 *PrevFitTMP = new TF1("PrevFitTMP","pol0",-10000,10000);
+  PrevFitTMP->SetFillColor(19);
+  PrevFitTMP->SetFillStyle(0);
+  PrevFitTMP->SetMarkerStyle(20);
+  PrevFitTMP->SetLineColor(2);
+  PrevFitTMP->SetLineWidth(1);
+  PrevFitTMP->SetParameter(0,1.0);
+  PrevFitTMP->SetParError(0,0);
+  PrevFitTMP->SetParLimits(0,0,0);
+  data_mc->GetListOfFunctions()->Add(PrevFitTMP);
+  return PrevFitTMP;
+}
+ 
+// pair<TAxis*, TAxis*> createAxistop(TH1* datahist, TH1* error) {
+//   int lastbin = 0, firstbin = 1;
+//   for(int i = 0; i < datahist->GetXaxis()->GetNbins(); i++) {
+//     if(datahist->GetBinContent(i+1) != 0 || error->GetBinContent(i+1) != 0) lastbin = i+1;
+//     if(datahist->GetXaxis()->GetXmin() < 0 && firstbin == 1 && (datahist->GetBinContent(i+1) != 0 || error->GetBinContent(i+1) != 0)) firstbin = i;
+//   }
+//   double max = (error->GetMaximum() > datahist->GetMaximum()) ? error->GetMaximum() : datahist->GetMaximum();
+//   double heightratio = 15.;
+//   if(hs->GetNhists() != 0) hs->GetXaxis()->SetRange(firstbin,lastbin+1);
+//   if(hs->GetNhists() != 0) hs->GetYaxis()->SetTitle("Events");
+//   if(hs->GetNhists() != 0) hs->SetMaximum(max*(1.0/heightratio + 1));
 
 // }
+
+void setXAxisTop(TH1* datahist, TH1* error, THStack* hs) {
+  TAxis* xaxis = hs->GetXaxis();
+  int lastbin = 0, firstbin = 1;
+  for(int i = 0; i < datahist->GetXaxis()->GetNbins(); i++) {
+    if(datahist->GetBinContent(i+1) != 0 || error->GetBinContent(i+1) != 0) lastbin = i+1;
+    if(datahist->GetXaxis()->GetXmin() < 0 && firstbin == 1 && (datahist->GetBinContent(i+1) != 0 || error->GetBinContent(i+1) != 0)) firstbin = i;
+  }
+  xaxis->SetRange(firstbin, lastbin+1);
+}
+
+void setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
+  //  TAxis* yaxis = hs->GetYaxis();
+  double max = (error->GetMaximum() > datahist->GetMaximum()) ? error->GetMaximum() : datahist->GetMaximum();
+  hs->SetMaximum(max*(1.0/ratio + 1.0));
+  //  yaxis->SetLimits(0, max*(1.0/ratio + 1.0));
+}
+
+void setXAxisBot(TH1* data_mc, TAxis* otheraxis, double ratio) {
+  TAxis* xaxis = data_mc->GetXaxis();
+  xaxis->SetRange(otheraxis->GetFirst(), otheraxis->GetLast());
+  xaxis->SetLabelSize(xaxis->GetLabelSize()*ratio);
+}
+
+void setYAxisBot(TH1* data_mc, double ratio) {
+  TAxis* yaxis = data_mc->GetYaxis();
+
+  double divmin = 0.0, divmax = 2.99;
+  double low=2.99, high=0.0, tmpval;
+  for(int i = 0; i < data_mc->GetXaxis()->GetNbins(); i++) {
+    tmpval = data_mc->GetBinContent(i+1);
+    if(tmpval < 2.99 && tmpval > high) {high = tmpval;}
+    if(tmpval > 0. && tmpval < low) {low = tmpval;}
+  }
+  double val = min(abs(1 / (high - 1.)), abs(1 / (1/low -1.)));
+  double factor = 1.0;
+  while(val > factor) {
+    divmin = 1.0 - 1.0/factor;
+    divmax = 1/divmin;
+    factor *= 2.0;
+  }
+       
+  yaxis->SetRangeUser(divmin,divmax);
+  yaxis->SetLabelSize(yaxis->GetLabelSize()*ratio);
+
+}
