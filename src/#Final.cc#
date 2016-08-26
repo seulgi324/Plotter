@@ -17,6 +17,9 @@ int main(int argc, char* argv[]) {
   }
 
   string output;
+  ofstream logfile;
+  logfile.open("logfile.tex", ios::out);
+  
   map<string, Normer*> plots;
   for(int i = 1; i < argc; ++i) {
     read_info(argv[i], output, plots);
