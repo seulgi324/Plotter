@@ -44,8 +44,8 @@ clean:
 	@ls $(OBJDIR)
 	@rm -f $(OBJECTS)
 
-job: Stacker
-	./Stacker config.stack
+job: Final
+	./Final config/final.config
 	root -l open.C
 
 .SUFFIXES: .$(SrcSuf) .cc .o .so

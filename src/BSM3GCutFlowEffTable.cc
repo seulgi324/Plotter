@@ -126,43 +126,15 @@ void BSM3GCutFlowEffTable::createLogFile() {
   }
   theCurrentFile->Close();
 
-  if(num == 0) {
+  if(num <= 0) {
     std::cerr << "     BSM3GCutFlowEffTable 'createLogFile' function: Error!! Histograms needed to produce the cut flow table do not exist!" << std::endl;
     return;
-  } else if(num == 1) {
-    outFile << "\\begin{tabular}{ | l | c | }" << endl;
-  } else if(num == 2) {
-    outFile << "\\begin{tabular}{ | l | c | c | }" << endl;
-  } else if(num == 3) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | }" << endl;
-  } else if(num == 4) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | }" << endl;
-  } else if(num == 5) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | }" << endl;
-  } else if(num == 6) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | }" << endl;
-  } else if(num == 7) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | }" << endl;
-  } else if(num == 8) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | c | }" << endl;
-  } else if(num == 9) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | c | c | }" << endl;
-  } else if(num == 10) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | c | c | c | }" << endl;
-  } else if(num == 11) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | c | c | c | c | }" << endl;
-  } else if(num == 12) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | c | c | c | c | c | }" << endl;
-  } else if(num == 13) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | c | c | c | c | c | c | }" << endl;
-  } else if(num == 14) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | c | c | c | c | c | c | c | }" << endl;
-  } else if(num == 15) {
-    outFile << "\\begin{tabular}{ | l | c | c | c | c | c | c | c | c | c | c | c | c | c | c | c | }" << endl;
-  } else {
-    cerr << "Code can't handle a cut flow table with more than 15 cuts" << endl;
-    return;
   }
+  outFile << "\\begin{tabular}{ | l |";
+  for(int i = 0; i < num; i++) {
+    outFile << " c |";
+  }
+  outFile << " }" << endl;
 
   outFile << "\\hline" << endl;
   outFile << "Process & ";
@@ -183,7 +155,7 @@ void BSM3GCutFlowEffTable::createLogFile() {
       if(numNum < num) {
         outFile << "Cut " << numNum << " & ";
       } else {
-        outFile << "Cut " << numNum << " \\" << "\\" << " \\hline" << endl;
+        outFile << "Cut " << numNum << " \\\\ \\hline" << endl;
       }
     }
 //    delete obj;
