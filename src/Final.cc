@@ -281,41 +281,60 @@ void CreateStack( TDirectory *target, Plot& plot, ofstream& logfile) {
       ///stack
       hs = sortStack(hs);
 
-      ///legend
-      TLegend* legend = createLeg(hs->GetHists());
-      legend->AddEntry(datahist, "Data", "f");
-      
-      //error
-      TGraphErrors* errorstack = createError(error, false);
-      TGraphErrors* errorratio = createError(error, true);
-      
       // data/mc
-      TH1D* data_mc = (TH1D*)datahist->Clone("data_mc");
-      data_mc->Divide(error);
+
+      vector<double> bins = rebinner(datahist, 0.1);
+      if(bins.size() == 0) continue;
+      double* binner = new double[bins.size()];
+      for(int i = 0; i < bins.size(); i++) {
+	binner[i] = bins.at(bins.size() - i - 1);
+      }
+
+      TH1D* datadraw = (TH1D*)datahist->Clone();
+      TH1D* ReError = (TH1D*)error->Clone();
+      THStack* hsdraw = (THStack*)hs->Clone();
+      if(bins.size() > 9) {
+	datadraw = (TH1D*)datadraw->Rebin(bins.size()-1, "data_rebin", binner);
+	ReError = (TH1D*)ReError->Rebin(bins.size()-1, "error_rebin", binner);
+	delete hsdraw;
+	hsdraw = rebinStack(hs, binner, bins.size()-1);	
+      } 
+      
+      TH1D* data_mc = (TH1D*)datadraw->Clone("data_mc");
+      data_mc->Divide(ReError);
+
+      //error
+      TGraphErrors* errorstack = createError(ReError, false);
+      TGraphErrors* errorratio = createError(ReError, true);
+      
 
       //line
       TF1 *PrevFitTMP = createLine(data_mc);
 
       double padratio = 3, heightratio = 15;
 
-
-
-
       target->cd();
 
-      if(hs->GetNhists() == 0) continue;
+      if(hsdraw == NULL || hsdraw->GetNhists() == 0) continue;
+
+      TLegend* legend = createLeg(hsdraw->GetHists());
+      legend->AddEntry(datadraw, "Data", "f");
+
 
       TCanvas *c = new TCanvas(h1->GetName(), h1->GetName());//403,50,600,600);
       c->Divide(1,2);
       c->cd(1);
       sizePad(padratio, gPad, true);
 
-      hs->Draw();
-      datahist->Draw("sameep");
+      //hs->Draw();
+      hsdraw->Draw();
+      
+
+
+      datadraw->Draw("same");
       errorstack->Draw("2");
       legend->Draw();
-      setXAxisTop(datahist, error, hs);
-      setYAxisTop(datahist, error, heightratio, hs);
+      setYAxisTop(datahist, error, heightratio, hsdraw);
 
       c->cd(2);
       sizePad(padratio, gPad, false);
@@ -330,15 +349,18 @@ void CreateStack( TDirectory *target, Plot& plot, ofstream& logfile) {
       c->cd();
       c->Write(c->GetName());
       c->Close();
-
+      
+      delete datadraw;
+      delete ReError;
       delete error;
       delete datahist;
       delete sighist;
-      delete hs;
-      delete legend;
+      //      delete hs;
+      //      delete legend;
       delete errorstack;
       delete errorratio;
       delete PrevFitTMP;
+      delete[] binner;
 
     } else if ( obj->IsA()->InheritsFrom( TDirectory::Class() ) ) {
       target->cd();
@@ -452,6 +474,106 @@ TF1* createLine(TH1* data_mc) {
 
 // }
 
+vector<double> rebinner(TH1* hist, double limit) {
+  vector<double> bins;
+  double toterror = 0.0, prevbin=0.0;
+  double limit2 = pow(limit,2);
+  bool foundfirst = false;
+  double end;
+
+  //  if(hist) return new double(1);
+  //how to tell if ok?
+
+  if(hist->GetEntries() == 0) return bins;
+
+  for(int i = hist->GetXaxis()->GetNbins(); i > 0; i--) {
+    if(hist->GetBinContent(i) <= 0.0) continue;
+    if(!foundfirst) { 
+      bins.push_back(hist->GetXaxis()->GetBinUpEdge(i));
+      foundfirst = true;
+    } else end = hist->GetXaxis()->GetBinLowEdge(i);
+
+    if(toterror* prevbin != 0.) toterror *= pow(prevbin,2)/pow(prevbin+hist->GetBinContent(i),2);
+    prevbin += hist->GetBinContent(i);
+    toterror += (2 * pow(hist->GetBinError(i),2))/pow(prevbin,2);
+    if(toterror < limit2) {
+      bins.push_back(hist->GetXaxis()->GetBinLowEdge(i));
+      toterror = 0.0;
+      prevbin = 0.0;
+    }
+  }
+
+  if(bins.back() != end) {
+    bins.push_back(end);
+    if(hist->GetXaxis()->GetXmin() >= 0 && end !=hist->GetXaxis()->GetXmin()) bins.push_back(hist->GetXaxis()->GetXmin());
+  }
+
+  return bins;
+}
+
+
+double* rebinner(TH1* hist1, TH1* hist2, double limit) {
+  vector<double> bins;
+  double toterror1 = 0.0, prevbin1=0.0;
+  double toterror2 = 0.0, prevbin2=0.0;
+  double limit2 = pow(limit,2);
+  bool foundfirst = false;
+  double end;
+
+  for(int i = hist1->GetXaxis()->GetNbins(); i > 0; i--) {
+    if(hist1->GetBinContent(i) <= 0.0 && hist2->GetBinContent(i) <= 0.0) continue;
+    if(!foundfirst) { 
+      bins.push_back(hist1->GetXaxis()->GetBinUpEdge(i));
+      foundfirst = true;
+    } else end = hist1->GetXaxis()->GetBinLowEdge(i);
+
+    if(toterror1* prevbin1 != 0.) toterror1 *= pow(prevbin1,2)/pow(prevbin1+hist1->GetBinContent(i),2);
+    if(toterror2* prevbin2 != 0.) toterror2 *= pow(prevbin2,2)/pow(prevbin2+hist2->GetBinContent(i),2);
+    prevbin1 += hist1->GetBinContent(i);
+    prevbin2 += hist2->GetBinContent(i);
+    toterror1 += (2 * pow(hist1->GetBinError(i),2))/pow(prevbin1,2);
+    toterror2 += (2 * pow(hist2->GetBinError(i),2))/pow(prevbin2,2);
+    if(toterror1 < limit2 && toterror2 < limit2) {
+      bins.push_back(hist1->GetXaxis()->GetBinLowEdge(i));
+      toterror1 = 0.0;
+      prevbin1 = 0.0;
+      toterror2 = 0.0;
+      prevbin2 = 0.0;
+    }
+  }
+
+  if(bins.back() != end) {
+    bins.push_back(end);
+    if(hist1->GetXaxis()->GetXmin() >= 0) bins.push_back(hist1->GetXaxis()->GetXmin());
+  }
+  
+  double* newbins = new double[bins.size()];
+  for(int i = 0; i < bins.size(); i++) {
+    newbins[i] = bins.at(bins.size() - i - 1);
+  }
+  
+  return newbins;
+}
+
+THStack* rebinStack(THStack* hs, double* binner, int total) {
+  THStack* newstack = new THStack(hs->GetName(), hs->GetName());
+  TList* list = (TList*)hs->GetHists();
+
+  TIter next(list);
+  TH1* tmp = NULL;
+  while ( (tmp = (TH1*)next()) ) {
+    TH1* forstack = (TH1*)tmp->Clone();
+    forstack = forstack->Rebin(total, tmp->GetName(), binner);
+    newstack->Add(forstack);
+  }
+  
+  delete hs;
+
+  return newstack;
+}
+
+
+
 void setXAxisTop(TH1* datahist, TH1* error, THStack* hs) {
   TAxis* xaxis = hs->GetXaxis();
   int lastbin = 0, firstbin = 1;
@@ -471,7 +593,7 @@ void setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
 
 void setXAxisBot(TH1* data_mc, TAxis* otheraxis, double ratio) {
   TAxis* xaxis = data_mc->GetXaxis();
-  xaxis->SetRange(otheraxis->GetFirst(), otheraxis->GetLast());
+  //xaxis->SetRange(otheraxis->GetFirst(), otheraxis->GetLast());
   xaxis->SetLabelSize(xaxis->GetLabelSize()*ratio);
 }
 
@@ -486,13 +608,15 @@ void setYAxisBot(TH1* data_mc, double ratio) {
     if(tmpval > 0. && tmpval < low) {low = tmpval;}
   }
   double val = min(abs(1 / (high - 1.)), abs(1 / (1/low -1.)));
+  if(high == 0.0) val = 0;
   double factor = 1.0;
   while(val > factor) {
+    factor *= 2.0;
     divmin = 1.0 - 1.0/factor;
     divmax = 1/divmin;
-    factor *= 2.0;
+
   }
-       
+
   yaxis->SetRangeUser(divmin,divmax);
   yaxis->SetLabelSize(yaxis->GetLabelSize()*ratio);
 

@@ -33,7 +33,7 @@ OBJECTS = $(SOURCES:$(SRCDIR)/%.cc=$(OBJDIR)/%.o)
 
 all: Plotter $(OBJECTS)
 
-Final: obj/Final.o obj/Normalizer.o
+Final: obj/Final.o obj/Normalizer.o obj/Style.o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)	
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc

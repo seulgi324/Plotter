@@ -29,6 +29,7 @@
 #include <array>
 
 #include "Normalizer.h"
+#include "Style.h"
 
 using namespace std;
 
@@ -97,4 +98,6 @@ void setXAxisTop(TH1*, TH1*, THStack*);
 void setYAxisTop(TH1*, TH1*, double, THStack*);
 void setXAxisBot(TH1*, TAxis*, double);
 void setYAxisBot(TH1*, double);
-
+vector<double> rebinner(TH1*, double);
+double* rebinner(TH1*, TH1*, double);
+THStack* rebinStack(THStack*, double*, int);

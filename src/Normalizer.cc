@@ -49,9 +49,7 @@ Normer::~Normer() {
 void Normer::print() {
   cout << " =========== " << output << " =========== " << endl;
   for(int i = 0; i < input.size(); ++i) {
-    cout << input.at(i) ;
-    if(isData) cout << endl;
-    //    else cout << " " << skim.at(i) << " " << xsec.at(i) <<  endl;
+    cout << input.at(i) << endl;
   }
   cout << endl;
 }
@@ -78,7 +76,6 @@ void Normer::MergeRootfile( TDirectory *target) {
   current_sourcedir->GetObject("Events", events);
 
   if(events) {
-    cout << "events" << endl;
     int nplot = 0;
 
     integral.at(nplot) = events->GetBinContent(2);
