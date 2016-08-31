@@ -1,125 +1,35 @@
-//Palette  1 0
+PadRatio   3
+TopWSRatio  15  
+RebinLimit  0.3
+DivideBins  1
+BinLimit   9
+
 OptStat  0 
 OptTitle  0
 OptDate 0
-OptFile
-OptFit
-OptLogx
-OptLogy
-
-LabelColor
 LabelOffset 0.007
 LabelFont 42
-LabelSize   0.05
+LabelSize   0.035
 
 LegendBorderSize
 LegendFillColor
-LegendFont
-LegendTextSize
-LegoInnerR
+LegendFont 42
+LegendTextSize 0.005
 
-LineAttributes
-LineColor
-LineColorAlpha
-LineScalePS
-LineStyle
-LineStyleString
-LineWidth
-
-MarkerAttributes
-MarkerColor
-MarkerColorAlpha
-MarkerSize
-MarkerStyle
-
-Name
-NameTitle
-
-Ndivisions
-NumberContours
-
-TextAttributes
-TextColor
-TextColorAlpha
-TextFont
-TextSize
-
-TickLength
-
-Title
-TitleAlign
-TitleBorderSize
-TitleColor
-TitleFillColor
 TitleOffset 0.9
 TitleFont 42
-TitleFontSize
-TitleH
 TitleSize 0.12
-TitleStyle
-TitleTextColor
-TitleW
-TitleX
-TitleXOffset
-TitleXSize
-TitleY
-TitleYOffset
-TitleYSize
-
-
 
 CanvasColor 0
 CanvasBorderMode 0
 CanvasBorderSize 3
-CanvasDefH
-CanvasDefW
-CanvasDefX
-CanvasDefY
-CanvasPreferGL
-ColorModeIPS
-DateX
-DateY
-DrawBorder
-EndErrorSize
-ErrorX
-FillAttributes
-FillColor
-FillColorAlpha
-FillStyle
-FitFormat
-FrameBorderSize
-FrameFillColor
-FrameFillStyle
-FrameLineColor
-FrameLineStyle
-FrameLineWidth
-FuncColor
-FuncStyle
-FuncWidth
-GridColor
-GridStyle
-GridWidth
-HatchesLineWidth
-HatchesSpacing
-HeaderPS
-HistFillColor
-HistFillStyle
-HistLineColor
-HistLineStyle
-HistLineWidth
-HistMinimumZero
-HistTopMargin
-IsReading
-JoinLinePS
 
+FuncColor  19
+FuncStyle   0
 
-PadBorderMode
-PadBorderSize
-PadBottomMargin
-PadColor
-PadBottomMargin 0.05
-PadTopMargin 0.05
-PadLeftMargin 0.15
+PadBottomMargin 0.07
+PadTopMargin 0.08
+PadLeftMargin 0.08
 PadRightMargin 0.05
 PadGridX 0
 PadGridY 0
@@ -127,9 +37,4 @@ PadTickX 1
 PadTickY 1
  
 FrameBorderMode 0
-
-AxisColor
-BarOffset
-Barwidth
-Bit
 

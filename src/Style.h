@@ -41,9 +41,19 @@ class Style {
 
   void read_info(string);
   void setStyle();
-  
+  TStyle* getStyle();
+  double getPadRatio() {return padratio;}
+  double getHeightRatio() {return heightratio;}
+  double getRebinLimit() {return rebinlimit;}
+  bool getDivideBins() {return dividebins;}
+  bool getBinLimit() {return binlimit;}
+
  private:
   TStyle* styler;
   map<string, double> values;
+  //  map<string,string> axisLabel = { {} }
+  int binlimit = 9;
+  double padratio = 3, heightratio = 15, rebinlimit = 0.3;
+  bool dividebins = false;
 };
 

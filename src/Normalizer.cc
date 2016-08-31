@@ -27,8 +27,6 @@ Normer::Normer(const Normer& other) {
     FileList->Add(new TObject(*object));
     object = FileList->After(object);  
   }
-
-
 }
 
 Normer& Normer::operator=(const Normer& rhs) {

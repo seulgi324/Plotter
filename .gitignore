@@ -1,9 +1,8 @@
 *~
 */*~
-PhysicsPlotter/*
 #*#
 *.out
 files/*
 *root
 Plotter
-obj/*
+obj/*.o

@@ -31,9 +31,10 @@ SOURCES = $(wildcard $(SRCDIR)/*.cc)
 OBJECTS = $(SOURCES:$(SRCDIR)/%.cc=$(OBJDIR)/%.o)
 #------------------------------------------------------------------------------
 
-all: Plotter $(OBJECTS)
+all: Plotter
 
-Final: obj/Final.o obj/Normalizer.o obj/Style.o
+
+Plotter: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)	
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc
@@ -47,7 +48,7 @@ clean:
 	@ls $(OBJDIR)
 	@rm -f $(OBJECTS)
 
-job: Final
+job: Plotter
 	./Final config/final.config
 	root -l open.C
 

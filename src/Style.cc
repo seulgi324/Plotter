@@ -61,6 +61,11 @@ void Style::read_info(string filename) {
 
 }
 
+TStyle* Style::getStyle() {
+  return styler;
+}
+
+
 void Style::setStyle() {
   for(map<string,double>::const_iterator it = values.begin(); it != values.end(); ++it) {
 
@@ -71,10 +76,10 @@ void Style::setStyle() {
     else if(it->first == "OptFit") styler->SetOptFit(it->second);
     else if(it->first == "OptLogx") styler->SetOptLogx(it->second);
     else if(it->first == "OptLogy") styler->SetOptLogy(it->second);
-    else if(it->first == "LabelColor") styler->SetLabelColor(it->second);
-    else if(it->first == "LabelOffset") styler->SetLabelOffset(it->second);
-    else if(it->first == "LabelFont") styler->SetLabelFont(it->second);
-    else if(it->first == "LabelSize") styler->SetLabelSize(it->second);
+    else if(it->first == "LabelColor") styler->SetLabelColor(it->second, "xy");
+    else if(it->first == "LabelOffset") styler->SetLabelOffset(it->second, "xy");
+    else if(it->first == "LabelFont") styler->SetLabelFont(it->second, "xy");
+    else if(it->first == "LabelSize") styler->SetLabelSize(it->second, "xy");
     else if(it->first == "LegendBorderSize") styler->SetLegendBorderSize(it->second);
     else if(it->first == "LegendFillColor") styler->SetLegendFillColor(it->second);
     else if(it->first == "LegendFont") styler->SetLegendFont(it->second);
@@ -177,5 +182,10 @@ void Style::setStyle() {
     else if(it->first == "BarOffset") styler->SetBarOffset(it->second);
     //    else if(it->first == "Barwidth") styler->SetBarwidth(it->second);
     else if(it->first == "Bit") styler->SetBit(it->second);
+    else if(it->first == "PadRatio") padratio = it->second;
+    else if(it->first == "TopWSRatio") heightratio = it->second;
+    else if(it->first == "RebinLimit") rebinlimit = it->second;
+    else if(it->first == "DivideBins") dividebins = it->second;
+    else if(it->first == "BinLimit") binlimit = it->second;
   }
 }

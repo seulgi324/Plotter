@@ -46,49 +46,11 @@ struct Plot {
   }
 };
 
-struct Style {
-  TStyle* styler = new TStyle("Styler", "Style");
-  Style() {
-    setStyle();
-  }
-  void setStyle() {
-    styler->SetOptStat(0);
-    styler->SetOptTitle(0);
-    styler->SetPalette(1,0);
-    styler->SetOptStat(0);
-    styler->SetOptTitle(0);
-    styler->SetOptDate(0);
-    styler->SetLabelSize(0.05, "xy");
-    styler->SetTitleSize(0.12,"xy");
-    styler->SetLabelOffset(0.007, "xy");
-    styler->SetTitleOffset(0.9, "xy");
-    styler->SetTitleFont(42,"xy");
-    styler->SetLabelFont(42, "xy");
-    styler->SetCanvasColor(0);
-    styler->SetCanvasBorderMode(0);
-    styler->SetCanvasBorderSize(3);
-
-    styler->SetPadBottomMargin(0.05);
-    styler->SetPadTopMargin(0.05);
-    styler->SetPadLeftMargin(0.15);
-    styler->SetPadRightMargin(0.05);
-    styler->SetPadGridX(0);
-    styler->SetPadGridY(0);
-    styler->SetPadTickX(1);
-    styler->SetPadTickY(1);
-  
-    styler->SetFrameBorderMode(0);
-  }
-  TStyle* getStyle() {
-    return styler;
-  }
-};
-
 void read_info(string, string&, map<string, Normer*>&);
 int getModTime(const char*);
 bool shouldAdd(string, string);
 
-void CreateStack( TDirectory*, Plot&, ofstream&);
+void CreateStack( TDirectory*, Plot&, Style&, ofstream&);
 THStack* sortStack(THStack*);
 TLegend* createLeg(TList* bgl=NULL, TList* sigl=NULL);
 TGraphErrors* createError(TH1*, bool);
@@ -101,3 +63,4 @@ void setYAxisBot(TH1*, double);
 vector<double> rebinner(TH1*, double);
 double* rebinner(TH1*, TH1*, double);
 THStack* rebinStack(THStack*, double*, int);
+void divideBin(TH1*, TH1*,THStack*);
