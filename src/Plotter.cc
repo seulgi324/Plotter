@@ -1,4 +1,4 @@
-#include "Final.h"
+#include "Plotter.h"
 #include "Normalizer.h"
 
 using namespace std;
@@ -6,7 +6,7 @@ using namespace std;
 
 Plot fullPlot;
 double lumi;
-
+string stylename = "default";
 
 int main(int argc, char* argv[]) {
   if(argc < 2) {
@@ -23,20 +23,26 @@ int main(int argc, char* argv[]) {
   int totalfiles = 0;
   vector<string> datan, bgn, sign;
   for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); ++it) {
-    if(! it->second->use) continue;
-    it->second->lumi = lumi;
-    it->second->print();
-    it->second->FileList = new TList();
-    for(vector<string>::iterator name = it->second->input.begin(); name != it->second->input.end(); ++name) {
-      it->second->FileList->Add(TFile::Open(name->c_str()));
-    }
+    if(it->second->use == 0) continue;
     string filename = it->second->output;
     while(filename.find("#") != string::npos) {
       filename.erase(filename.find("#"), 1);
     }
-    TFile* final = new TFile(filename.c_str(), "RECREATE");
+    TFile* final = NULL;
+    if(it->second->use == 1) {
+      it->second->lumi = lumi;
+      it->second->print();
+      it->second->FileList = new TList();
+      for(vector<string>::iterator name = it->second->input.begin(); name != it->second->input.end(); ++name) {
+	it->second->FileList->Add(TFile::Open(name->c_str()));
+      }
+    
+      final = new TFile(filename.c_str(), "RECREATE");
+      it->second->MergeRootfile(final);
+    } else if(it->second->use == 2) {
+      final = new TFile(filename.c_str());
+    }
     final->SetTitle(it->second->output.c_str());
-    it->second->MergeRootfile(final);
     fullPlot.addFile(it->second->type, final);
     totalfiles++;
     if(it->second->type == "data") datan.push_back(it->second->output);
@@ -56,7 +62,7 @@ int main(int argc, char* argv[]) {
   for(vector<string>::iterator it = sign.begin(); it != sign.end(); it++) logfile << " & " << it->substr(0, it->length()-5);
   logfile << "\\\\ \\hline" << endl;
 
-  Style stylez("style/default");
+  Style stylez("style/" + stylename);
 
   gStyle = stylez.getStyle();
   CreateStack(final, fullPlot, stylez, logfile);
@@ -90,6 +96,7 @@ void read_info(string filename, string& output, map<string, Normer*>& plots) {
     if(stemp.size() >= 2) {
       if(stemp[0].find("lumi") != string::npos) lumi = stod(stemp[1]);
       else if(stemp[0].find("output") != string::npos) output = stemp[1];
+      else if(stemp[0].find("style") != string::npos) stylename = stemp[1];
       else if(plots.find(stemp[1]) == plots.end()) { 
 	Normer* tmpplot = new Normer();
 	tmpplot->input.push_back(stemp[0]);
@@ -108,7 +115,7 @@ void read_info(string filename, string& output, map<string, Normer*>& plots) {
 	plots[stemp[1]] = tmpplot;
       } else {
 	plots[stemp[1]]->input.push_back(stemp[0]);
-	plots[stemp[1]]->use *= shouldAdd(stemp[0], stemp[1]);
+	plots[stemp[1]]->use = min(shouldAdd(stemp[0], stemp[1]),plots[stemp[1]]->use);
 	plots[stemp[1]]->CumulativeEfficiency.push_back(1.);
 	plots[stemp[1]]->scaleFactor.push_back(1.);
 	plots[stemp[1]]->scaleFactorError.push_back(0.);
@@ -130,13 +137,13 @@ void read_info(string filename, string& output, map<string, Normer*>& plots) {
 
 }
 
-bool shouldAdd(string infile, string globalFile) {
+int shouldAdd(string infile, string globalFile) {
   struct stat buffer;
-  if(stat(infile.c_str(), &buffer) != 0) return false;
+  if(stat(infile.c_str(), &buffer) != 0) return 0;
   ////need to change so doesn't make plot if fatal error (eg file doesn't exist!
-  else if(stat(globalFile.c_str(), &buffer) != 0) return true;
-  else if(getModTime(globalFile.c_str()) > getModTime(infile.c_str())) return true;
-  else return true;
+  else if(stat(globalFile.c_str(), &buffer) != 0) return 1;
+  else if(getModTime(globalFile.c_str()) > getModTime(infile.c_str())) return 2;
+  else return 1;
 
 }
 
@@ -287,9 +294,10 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
       if(bins.size() == 0) continue;
       double* binner = new double[bins.size()];
       for(int i = 0; i < bins.size(); i++) {
+	//	cout << bins.at(bins.size() - i - 1) << " " ;
 	binner[i] = bins.at(bins.size() - i - 1);
       }
-
+      //      cout << endl;
       THStack* hsdraw = hs;
       if(bins.size() > styler.getBinLimit()) {
 	datahist = (TH1D*)datahist->Rebin(bins.size()-1, "data_rebin", binner);

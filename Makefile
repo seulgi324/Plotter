@@ -49,7 +49,7 @@ clean:
 	@rm -f $(OBJECTS)
 
 job: Plotter
-	./Final config/final.config
+	./Plotter config/201607.config
 	root -l open.C
 
 .SUFFIXES: .$(SrcSuf) .cc .o .so

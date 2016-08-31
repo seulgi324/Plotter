@@ -6,3 +6,4 @@ files/*
 *root
 Plotter
 obj/*.o
+log.txt

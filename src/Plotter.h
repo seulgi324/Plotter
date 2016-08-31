@@ -48,7 +48,7 @@ struct Plot {
 
 void read_info(string, string&, map<string, Normer*>&);
 int getModTime(const char*);
-bool shouldAdd(string, string);
+int shouldAdd(string, string);
 
 void CreateStack( TDirectory*, Plot&, Style&, ofstream&);
 THStack* sortStack(THStack*);

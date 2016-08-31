@@ -48,8 +48,8 @@ class Normer {
 
   TList* FileList;
   vector<double> integral, CumulativeEfficiency, scaleFactor, scaleFactorError;
-  bool use, isData=false;
-
+  bool isData=false;
+  int use=3;
 
   void MergeRootfile( TDirectory*);
   void print();

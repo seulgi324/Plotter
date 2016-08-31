@@ -1,7 +1,7 @@
 PadRatio   3
 TopWSRatio  15  
-RebinLimit  0.3
-DivideBins  1
+RebinLimit  1
+DivideBins  0
 BinLimit   9
 
 OptStat  0 
