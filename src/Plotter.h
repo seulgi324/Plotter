@@ -64,3 +64,7 @@ vector<double> rebinner(TH1*, double);
 double* rebinner(TH1*, TH1*, double);
 THStack* rebinStack(THStack*, double*, int);
 void divideBin(TH1*, TH1*,THStack*);
+
+enum Bottom {SigLeft, SigRight, SigBoth, SigBin, Ratio};
+
+Bottom bottomType = SigBin;

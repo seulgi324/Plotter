@@ -1,0 +1,213 @@
+
+Processing chi2.C...
+Events Events
+Chi2 = 94560.423441, Prob = 0, NDF = 1, igood = 0
+
+NVertices NVertices
+Chi2 = 1130.718830, Prob = 1.16204e-204, NDF = 49, igood = 3
+
+NTauJet1 NTauJet1
+Chi2 = 20.342602, Prob = 6.47429e-06, NDF = 1, igood = 0
+
+TauJet1Energy TauJet1Energy
+Chi2 = 120.600319, Prob = 1, NDF = 266, igood = 3
+
+TauJet1Pt TauJet1Pt
+Chi2 = 66.453130, Prob = 0.999954, NDF = 117, igood = 3
+
+TauJet1Eta TauJet1Eta
+Chi2 = 29.884287, Prob = 0.959523, NDF = 45, igood = 0
+
+FirstLeadingTauJet1Pt FirstLeadingTauJet1Pt
+Chi2 = 66.453130, Prob = 0.999954, NDF = 117, igood = 3
+
+FirstLeadingTauJet1Eta FirstLeadingTauJet1Eta
+Chi2 = 29.884287, Prob = 0.959523, NDF = 45, igood = 0
+
+TauJet1Phi TauJet1Phi
+Chi2 = 16.120593, Prob = 0.997356, NDF = 35, igood = 0
+
+TauJet1NumSignalTracks TauJet1NumSignalTracks
+Chi2 = 6.548512, Prob = 0.037845, NDF = 2, igood = 0
+
+TauJet1SeedTrackPt TauJet1SeedTrackPt
+Chi2 = 71.931327, Prob = 0.984616, NDF = 100, igood = 3
+
+TauJet1Charge TauJet1Charge
+Chi2 = 0.057293, Prob = 0.810827, NDF = 1, igood = 0
+
+NMuon1 NMuon1
+Chi2 = 37.683852, Prob = 8.31904e-10, NDF = 1, igood = 0
+
+Muon1Energy Muon1Energy
+Chi2 = 679.661952, Prob = 0.582269, NDF = 688, igood = 3
+
+Muon1Pt Muon1Pt
+Chi2 = 238.659422, Prob = 1, NDF = 383, igood = 3
+
+Muon1Eta Muon1Eta
+Chi2 = 140.148355, Prob = 3.36578e-11, NDF = 47, igood = 0
+
+FirstLeadingMuon1Pt FirstLeadingMuon1Pt
+Chi2 = 273.091776, Prob = 0.998846, NDF = 348, igood = 3
+
+FirstLeadingMuon1Eta FirstLeadingMuon1Eta
+Chi2 = 138.878320, Prob = 5.19627e-11, NDF = 47, igood = 0
+
+Muon1Phi Muon1Phi
+Chi2 = 49.090042, Prob = 0.0573788, NDF = 35, igood = 0
+
+Muon1MetMt Muon1MetMt
+Chi2 = 74.726974, Prob = 0.967258, NDF = 99, igood = 3
+
+NMuon2 NMuon2
+Chi2 = 42.589083, Prob = 5.64805e-10, NDF = 2, igood = 0
+
+Muon2Energy Muon2Energy
+Chi2 = 327.520778, Prob = 1, NDF = 670, igood = 3
+
+Muon2Pt Muon2Pt
+Chi2 = 132.484977, Prob = 1, NDF = 365, igood = 3
+
+Muon2Eta Muon2Eta
+Chi2 = 98.100572, Prob = 1.82946e-05, NDF = 47, igood = 0
+
+FirstLeadingMuon2Pt FirstLeadingMuon2Pt
+Chi2 = 131.873672, Prob = 1, NDF = 330, igood = 3
+
+FirstLeadingMuon2Eta FirstLeadingMuon2Eta
+Chi2 = 97.088689, Prob = 2.42188e-05, NDF = 47, igood = 0
+
+Muon2Phi Muon2Phi
+Chi2 = 29.380051, Prob = 0.735835, NDF = 35, igood = 0
+
+Muon2MetMt Muon2MetMt
+Chi2 = 65.958108, Prob = 0.995697, NDF = 99, igood = 3
+
+NJet1 NJet1
+Chi2 = 260.009830, Prob = 1.07222e-46, NDF = 15, igood = 3
+
+Jet1Energy Jet1Energy
+Chi2 = 149.133302, Prob = 0.980929, NDF = 187, igood = 0
+
+Jet1Pt Jet1Pt
+Chi2 = 125.832679, Prob = 0.999813, NDF = 187, igood = 0
+
+Jet1Eta Jet1Eta
+Chi2 = 559.652899, Prob = 1.95613e-65, NDF = 99, igood = 2
+
+Jet1Phi Jet1Phi
+Chi2 = 167.591972, Prob = 8.77164e-10, NDF = 71, igood = 0
+
+NJet2 NJet2
+Chi2 = 194.259945, Prob = 3.10741e-33, NDF = 15, igood = 3
+
+Jet2Energy Jet2Energy
+Chi2 = 146.766381, Prob = 0.986674, NDF = 187, igood = 0
+
+Jet2Pt Jet2Pt
+Chi2 = 140.172216, Prob = 0.995657, NDF = 187, igood = 0
+
+Jet2Eta Jet2Eta
+Chi2 = 561.330801, Prob = 9.76859e-66, NDF = 99, igood = 2
+
+Jet2Phi Jet2Phi
+Chi2 = 166.600113, Prob = 1.17821e-09, NDF = 71, igood = 0
+
+NBJet NBJet
+Chi2 = 0.000000, Prob = 0, NDF = 0, igood = 0
+
+BJetEnergy BJetEnergy
+Chi2 = 118.210810, Prob = 0.999978, NDF = 187, igood = 0
+
+BJetPt BJetPt
+Chi2 = 150.891312, Prob = 0.975461, NDF = 187, igood = 3
+
+BJetEta BJetEta
+Chi2 = 286.196439, Prob = 3.07262e-35, NDF = 49, igood = 0
+
+BJetPhi BJetPhi
+Chi2 = 159.280103, Prob = 8.86919e-18, NDF = 35, igood = 0
+
+Met Met
+Chi2 = 146.243263, Prob = 0.00115115, NDF = 98, igood = 3
+
+MetDiJetDeltaPhi MetDiJetDeltaPhi
+Chi2 = 34.062661, Prob = 0.999939, NDF = 71, igood = 0
+
+MHT MHT
+Chi2 = 107.333686, Prob = 0.97516, NDF = 138, igood = 3
+
+HT HT
+Chi2 = 381.724883, Prob = 0.994077, NDF = 454, igood = 3
+
+Meff Meff
+Chi2 = 452.110079, Prob = 0.669193, NDF = 466, igood = 3
+
+DiMuon_Muon1DiJetDeltaPhi DiMuon_Muon1DiJetDeltaPhi
+Chi2 = 24.747846, Prob = 0.99999, NDF = 61, igood = 3
+
+DiMuon_Muon2DiJetDeltaPhi DiMuon_Muon2DiJetDeltaPhi
+Chi2 = 30.013483, Prob = 0.99996, NDF = 66, igood = 3
+
+DiMuon_Muon1IsZdecay DiMuon_Muon1IsZdecay
+Chi2 = 0.021663, Prob = 0.882988, NDF = 1, igood = 2
+
+DiMuon_Muon2IsZdecay DiMuon_Muon2IsZdecay
+Chi2 = 0.024192, Prob = 0.876398, NDF = 1, igood = 2
+
+DiMuonDeltaR DiMuonDeltaR
+Chi2 = 11.886075, Prob = 0.972191, NDF = 23, igood = 3
+
+DiMuonDeltaPtDivSumPt DiMuonDeltaPtDivSumPt
+Chi2 = 3.883007, Prob = 0.867522, NDF = 8, igood = 3
+
+DiMuonDeltaPt DiMuonDeltaPt
+Chi2 = 13.460326, Prob = 1, NDF = 55, igood = 3
+
+DiMuon_Muon1MetMt DiMuon_Muon1MetMt
+Chi2 = 37.491502, Prob = 0.999991, NDF = 81, igood = 3
+
+DiMuon_Muon2MetMt DiMuon_Muon2MetMt
+Chi2 = 36.220697, Prob = 0.995147, NDF = 61, igood = 3
+
+DiMuonOSLS DiMuonOSLS
+Chi2 = 0.000000, Prob = 0, NDF = 0, igood = 0
+
+DiMuonCosDphi DiMuonCosDphi
+Chi2 = 28.229330, Prob = 1, NDF = 76, igood = 3
+
+DiMuonCosDphi_DeltaPtAndMet DiMuonCosDphi_DeltaPtAndMet
+Chi2 = 99.831812, Prob = 1, NDF = 198, igood = 3
+
+DiMuon_Muon1MetDeltaPhi DiMuon_Muon1MetDeltaPhi
+Chi2 = 45.918597, Prob = 0.990939, NDF = 71, igood = 3
+
+DiMuon_Muon2MetDeltaPhi DiMuon_Muon2MetDeltaPhi
+Chi2 = 26.986520, Prob = 1, NDF = 71, igood = 3
+
+DiMuonPZeta DiMuonPZeta
+Chi2 = 1.271324, Prob = 0.529585, NDF = 2, igood = 2
+
+DiMuonPZetaVis DiMuonPZetaVis
+Chi2 = 0.000000, Prob = 0, NDF = 99, igood = 0
+
+DiMuonZeta1D DiMuonZeta1D
+Chi2 = 16.967220, Prob = 0.980685, NDF = 31, igood = 3
+
+DiMuonNotReconstructableMass DiMuonNotReconstructableMass
+Chi2 = 0.000000, Prob = 0, NDF = 599, igood = 0
+
+DiMuonReconstructableMass DiMuonReconstructableMass
+Chi2 = 7.090274, Prob = 0.955096, NDF = 15, igood = 2
+
+Muon1PtVsMuon2Pt Muon1PtVsMuon2Pt
+Chi2 = 1366.594544, Prob = 2.19675e-59, NDF = 613, igood = 3
+
+DiMuonZeta2D DiMuonZeta2D
+Chi2 = 0.000000, Prob = 0, NDF = 19999, igood = 0
+
+Muon1MetDeltaPhiVsDiMuonCosDphi Muon1MetDeltaPhiVsDiMuonCosDphi
+Chi2 = 1094.382639, Prob = 0.958234, NDF = 1177, igood = 3
+
+(int) 0

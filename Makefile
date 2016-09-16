@@ -49,7 +49,7 @@ clean:
 	@rm -f $(OBJECTS)
 
 job: Plotter
-	./Plotter config/201607.config
+	./Plotter config/ttbar.config
 	root -l open.C
 
 .SUFFIXES: .$(SrcSuf) .cc .o .so

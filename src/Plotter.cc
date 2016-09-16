@@ -177,7 +177,7 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 
 
   ///try to find events to calculate efficiency
-  TH1F* events;
+  TH1* events;
   current_sourcedir->GetObject("Events", events);
 
   if(events) {
@@ -212,7 +212,6 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
   delete events;
 
   // loop over all keys in this directory
-  TChain *globChain = 0;
   TIter nextkey( current_sourcedir->GetListOfKeys() );
   TKey *key, *oldkey=0;
   while ( (key = (TKey*)nextkey())) {
@@ -223,12 +222,12 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
     dataStart->cd( path );
 
     TObject *obj = key->ReadObj();
-    if ( obj->IsA() ==  TH1F::Class() ) {
+    if ( obj->IsA() ==  TH1D::Class() ) {
       
       TH1 *h1 = (TH1*)obj;
       TH1D* error = new TH1D("error", "error", h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
       TH1D* datahist = new TH1D("data", "data", h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
-      TH1D* sighist = new TH1D("signal", "signal", h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
+      TList* sigHists = new TList();
       THStack *hs = new THStack(h1->GetName(),h1->GetName());
       
       /*------------data--------------*/
@@ -251,7 +250,6 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
       nextfile = (TFile*)bglist->First();
 
       while ( nextfile ) {
-
 	nextfile->cd( path );
 	TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
 	if(key2) {
@@ -267,10 +265,8 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 	  h2->SetLineColor(1);
 	  h2->SetFillStyle(1001);
 	  h2->SetFillColor(plot.color[nfile]);
-	  //////endstyle
-
+	
 	  hs->Add(h2);
-
 	}
 	nextfile = (TFile*)bglist->After(nextfile);
 	nfile++;
@@ -279,51 +275,103 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 
       /*------------signal--------------*/
 
+      nextfile = (TFile*)sglist->First();
+
+      while ( nextfile ) {
+	nextfile->cd( path );
+	TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
+	if(key2) {
+	  TH1D* h2 = (TH1D*)key2->ReadObj();
+	  for(int i = 1; i < h2->GetXaxis()->GetNbins()+1; i++) {
+	    h2->SetBinError(i, 0);
+	  }
+
+	  //////style
+	  string title = nextfile->GetTitle();
+	  title = title.substr(0, title.size()-5);
+	  h2->SetTitle(title.c_str());
+	  h2->SetLineColor(plot.color[nfile]);
+	  h2->SetLineWidth(3);
+	  h2->SetLineStyle(2);
+
+	  sigHists->Add(h2);
+
+	}
+	nextfile = (TFile*)sglist->After(nextfile);
+	nfile++;
+      }
+
+
       /*--------------write out------------*/
 
       ///data
       datahist->SetMarkerStyle(20);
       datahist->SetLineColor(1);
 
-      ///stack
       hs = sortStack(hs);
 
-      // data/mc
-
+      ///rebin
+      ////////////decide how to rebin(data, background, both)
       vector<double> bins = rebinner(datahist, styler.getRebinLimit());
       if(bins.size() == 0) continue;
       double* binner = new double[bins.size()];
-      for(int i = 0; i < bins.size(); i++) {
-	//	cout << bins.at(bins.size() - i - 1) << " " ;
+      bool passed = true;
+      binner[0] = bins.back();
+      for(int i = 1; i < bins.size(); i++) {
+	if(bins.at(bins.size() - i) >= bins.at(bins.size() - i - 1))  {
+	  passed = false;
+	  break;
+	}
 	binner[i] = bins.at(bins.size() - i - 1);
       }
-      //      cout << endl;
+
       THStack* hsdraw = hs;
-      if(bins.size() > styler.getBinLimit()) {
+      if(passed && bins.size() > styler.getBinLimit()) {
 	datahist = (TH1D*)datahist->Rebin(bins.size()-1, "data_rebin", binner);
 	error = (TH1D*)error->Rebin(bins.size()-1, "error_rebin", binner);
 	hsdraw = rebinStack(hs, binner, bins.size()-1);	
+	if(sigHists->GetSize() > 0) {
+	  TList* tmplist = new TList();
+	  TH1D* onesig = (TH1D*)sigHists->First();
+	  while(onesig) {
+	    tmplist->Add(onesig->Rebin(bins.size()-1, onesig->GetName(), binner));
+	    onesig = (TH1D*)sigHists->After(onesig);
+	  }
+	  delete sigHists;
+	  sigHists = tmplist;
+	}
       } 
 
-      if(styler.getDivideBins()) divideBin(datahist, error, hsdraw);
+      if(styler.getDivideBins()) divideBin(datahist, error, hsdraw); ///add sig stuff as well
       
+
+      //error
+      TGraphErrors* errorstack = createError(error, false);
+
+
+
       TH1D* data_mc = (TH1D*)datahist->Clone("data_mc");
       data_mc->SetTitle("");
       data_mc->Divide(error);
 
-      //error
-      TGraphErrors* errorstack = createError(error, false);
       TGraphErrors* errorratio = createError(error, true);
-
-      //line
       TF1 *PrevFitTMP = createLine(data_mc);
 
       target->cd();
 
-      if(hsdraw == NULL || hsdraw->GetNhists() == 0) continue;  ///fix so don't need hs to plot
+      if(hsdraw == NULL || hsdraw->GetNhists() == 0) continue;
 
+      ///legend stuff
       TLegend* legend = createLeg(hsdraw->GetHists());
       legend->AddEntry(datahist, "Data", "lep");
+      if(sigHists->GetSize() > 0) {
+	TH1D* onesig = (TH1D*)sigHists->First();
+	while(onesig) {
+	  legend->AddEntry(onesig, onesig->GetName(), "lep");
+	  onesig = (TH1D*)sigHists->After(onesig);
+	}
+      }
+
 
       TCanvas *c = new TCanvas(h1->GetName(), h1->GetName());//403,50,600,600);
       c->Divide(1,2);
@@ -332,6 +380,13 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 
       hsdraw->Draw();
       datahist->Draw("same");
+      if(sigHists->GetSize() > 0) {
+	TH1D* onesig = (TH1D*)sigHists->First();
+	while(onesig) {
+	  onesig->Draw("same");
+	  onesig = (TH1D*)sigHists->After(onesig);
+	}
+      }
       errorstack->Draw("2");
       legend->Draw();
       setYAxisTop(datahist, error, styler.getHeightRatio(), hsdraw);
@@ -339,18 +394,84 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
       c->cd(2);
       sizePad(styler.getPadRatio(), gPad, false);
 
-      data_mc->Draw("ep1");
-      errorratio->Draw("2");
-      setXAxisBot(data_mc, hs->GetXaxis(), styler.getPadRatio());
-      setYAxisBot(data_mc, styler.getPadRatio());
+
+      
+      if(bottomType != Ratio) { 
+
+	TH1D* signifHist = (TH1D*)datahist->Clone();
+	TH1D* sig1 = (TH1D*)sigHists->First();
+	int dataNbins = datahist->GetXaxis()->GetNbins();
+	for(int i = 0; i < dataNbins; i++) {
+	  if(sig1->GetBinContent(i+1) <= 0 && error->GetBinContent(i+1) <= 0) continue;
+	  int edge1 = i+1, edge2= i+1;
+	  double sigErr, backErr;
+	  if(bottomType == SigLeft) edge1 = 0;
+	  if(bottomType == SigRight) edge2 = dataNbins;
+	  double sigInt = sig1->IntegralAndError(edge1, edge2, sigErr);
+	  double backInt = error->IntegralAndError(edge1, edge2, backErr);
+	  
+	  double total = sigInt/sqrt(sigInt+backInt);
+	  double perErr = pow(sigErr/sigInt-sigErr/(2*(sigInt+backInt)),2) + pow(backErr/(2*(sigInt+backInt)),2);
+
+	  for(int i = edge1; i <= edge2; i++) {
+	    
+	  }
+	  signifHist->SetBinContent(i+1, total);
+	  signifHist->SetBinError(i+1, total*perErr);
+	}
+	signifHist->Draw();
+
+      // } else if(bottomType == SigBoth) {
+      // 	TH1D* signifHistl = (TH1D*)datahist->Clone();
+      // 	TH1D* signifHistr = (TH1D*)datahist->Clone();
+      // 	TH1D* sig1 = (TH1D*)sigHists->First();
+      // 	int dataNbins = datahist->GetXaxis()->GetNbins();
+      // 	for(int i = 0; i < dataNbins; i++) {
+      // 	  if(sig1->GetBinContent(i+1) <= 0 && error->GetBinContent(i+1) <= 0) continue;
+      // 	  signifHistl->SetBinContent(i+1, sig1->Integral(i+1,dataNbins)/sqrt(sig1->Integral(i+1,dataNbins)+error->Integral(i+1,dataNbins)));
+      // 	  signifHistr->SetBinContent(i+1, sig1->Integral(0,i+1)/sqrt(sig1->Integral(0,i+1)+error->Integral(0,i+1)));
+      // 	}
+      // 	signifHistl->Draw();
+      // 	signifHistr->Draw("same");
+
+      } else if(bottomType == Ratio) {
+	TH1D* botAxis = (TH1D*)data_mc->Clone();
+	botAxis->Draw("AXIS");
+	if(sigHists->GetSize() > 0) {
+	  TH1D* onesig = (TH1D*)sigHists->First();
+	  while(onesig) {
+	    TH1D* tmphist = (TH1D*)onesig->Clone();
+	    tmphist->Divide(error);
+	    tmphist->Draw("same");
+	    onesig = (TH1D*)sigHists->After(onesig);
+	  }
+	}
+	data_mc->Draw("sameep1");
+	errorratio->Draw("2");
+	setXAxisBot(botAxis, hs->GetXaxis(), styler.getPadRatio());
+	setYAxisBot(botAxis, styler.getPadRatio());
+
+      }
+      // TH1D* signifHist = (TH1D*)datahist->Clone();
+      // TH1D* sig1 = (TH1D*)sigHists->First();
+      // for(int i = 0; i < datahist->GetXaxis()->GetNbins(); i++) {
+      // 	if(sig1->GetBinContent(i+1) <= 0 && error->GetBinContent(i+1) <= 0) continue;
+      // 	signifHist->SetBinContent(i+1, sig1->GetBinContent(i+1)/sqrt(sig1->GetBinContent(i+1)+error->GetBinContent(i+1)));
+      // 	double signif = (4*error->GetBinContent(i+1)*(error->GetBinContent(i+1)+sig1->GetBinContent(i+1))+pow(sig1->GetBinContent(i+1),2))*pow(sig1->GetBinError(i+1),2);
+      // 	signif += pow(sig1->GetBinContent(i+1)*error->GetBinError(i+1), 2);
+      // 	signif /= 4*pow(sig1->GetBinContent(i+1)+error->GetBinContent(i+1),3);
+      // 	signifHist->SetBinError(i+1, sqrt(signif));
+      // }
+      // signifHist->Draw();
 
       c->cd();
       c->Write(c->GetName());
       c->Close();
       
+      delete hsdraw;
       delete datahist;
       delete error;
-      delete sighist;
+      delete sigHists;
       delete legend;
       delete errorstack;
       delete errorratio;
@@ -371,8 +492,7 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 	   << obj->GetName() << " title: " << obj->GetTitle() << endl;
     }
   }
-  // save modifications to target file
-  //  target->SaveSelf(kTRUE);
+
   TH1::AddDirectory(status);
 }
 
@@ -464,10 +584,10 @@ vector<double> rebinner(TH1* hist, double limit) {
   bool foundfirst = false;
   double end;
 
-  //  if(hist) return new double(1);
+
   //how to tell if ok?
 
-  if(hist->GetEntries() == 0) return bins;
+  if(hist->GetEntries() == 0 || hist->Integral() <= 0) return bins;
 
   for(int i = hist->GetXaxis()->GetNbins(); i > 0; i--) {
     if(hist->GetBinContent(i) <= 0.0) continue;
@@ -557,11 +677,6 @@ THStack* rebinStack(THStack* hs, double* binner, int total) {
 
 
 
-void setXAxisTop(TH1* datahist, TH1* error, THStack* hs) {
-  TAxis* xaxis = hs->GetXaxis();
-
-}
-
 void setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
   TAxis* yaxis = hs->GetYaxis();
   //if(dividebins)yaxis->SetTitle("Events/GeV");////get axis title stuff
@@ -626,3 +741,5 @@ void divideBin(TH1* data, TH1* error, THStack* hs) {
   }
    
 }
+
+

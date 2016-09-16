@@ -70,7 +70,7 @@ void Normer::MergeRootfile( TDirectory *target) {
 
 
   ///try to find events to calculate efficiency
-  TH1F* events;
+  TH1D* events;
   current_sourcedir->GetObject("Events", events);
 
   if(events) {
@@ -107,7 +107,7 @@ void Normer::MergeRootfile( TDirectory *target) {
       TH1 *h1 = (TH1*)obj;
       h1->Sumw2();
       int spot = 0;
-      if(!isData) h1->Scale(CumulativeEfficiency.at(spot)/integral.at(spot) * xsec.at(spot)* lumi* skim.at(spot));
+      if(!isData && integral.at(spot) != 0) h1->Scale(CumulativeEfficiency.at(spot)/integral.at(spot) * xsec.at(spot)* lumi* skim.at(spot));
 
       TFile *nextsource = (TFile*)sourcelist->After( first_source );
       
@@ -118,7 +118,9 @@ void Normer::MergeRootfile( TDirectory *target) {
 	if (key2) {
 	  TH1 *h2 = (TH1*)key2->ReadObj();
 	  h2->Sumw2();
+	  if(integral.at(spot) == 0) integral.at(spot) = 0.1; 
 	  double scale = (isData) ? 1.0 : CumulativeEfficiency.at(spot)/integral.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
+
 	  h1->Add( h2, scale);
 	  delete h2;
 	  
