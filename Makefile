@@ -9,8 +9,8 @@ DllSuf = so
 OutPutOpt = -o
 HeadSuf = h
 
-ROOTCFLAGS = $(shell root-config --cflags)
-ROOTLIBS = $(shell root-config --libs)
+ROOTCFLAGS = $(shell root-config --cflags) -O2
+ROOTLIBS = $(shell root-config --libs) -O2
 
 # Linux with egcs
 

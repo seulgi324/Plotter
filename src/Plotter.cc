@@ -7,6 +7,7 @@ using namespace std;
 Plot fullPlot;
 double lumi;
 string stylename = "default";
+bool ssqrtsb = true;
 
 int main(int argc, char* argv[]) {
   if(argc < 2) {
@@ -18,15 +19,28 @@ int main(int argc, char* argv[]) {
   map<string, Normer*> plots;
   vector<string> inputnames;
   for(int i = 1; i < argc; ++i) {
-    cout << argv[i] << " " << argv[i][0] << endl;
     if(argv[i][0] == '-') {
-      cout << "here" << endl;
       if(strcmp(argv[i],"-help") == 0) {
-	cout << "help is on the way" << endl;
+	cout << "Usage: ./Plotter [OPTION] [CONFIG FILE]" << endl;
+	cout << "Plotter allows for making stack plots with ratio or significance plots as a\n" << endl;
+	cout << "secondary graph. The Default graph is the Ratio plot.  You can change this with\nthe different options" << endl << endl;
+	cout << "    -sigleft      Significance plot cumulative from the left. Entry in bin i" << endl;
+	cout << "                  represents siginifcance if events with values in bins greater" << endl;
+	cout << "                  than i are cut" << endl;
+	cout << "    -sigright     Significance plot cumulative from the right. Entry in bin i" << endl;
+	cout << "                  represents significance if events with values in bins lower" << endl;
+	cout << "                  than i are cut" << endl;
+	cout << "    -sigbin       Significance plot with significance of each bin. Not" << endl;
+	cout << "                  cumulative, just significance of the respective bin" << endl;
+	cout << "    -ssqrtb       Default for Significance is using the formula:" << endl;
+        cout << "                  s/sqrt(s + b)" << endl;
+	cout << "                  This option changes the significance calculation to be:" << endl;
+	cout << "                  s/sqrt(b)" << endl;
 	exit(0);
       } else if( strcmp(argv[i], "-sigleft") == 0) bottomType = SigLeft;
       else if( strcmp(argv[i], "-sigright") == 0) bottomType = SigRight;
       else if( strcmp(argv[i],"-sigbin") == 0) bottomType = SigBin;
+      else if( strcmp(argv[i],"-ssqrtb") == 0) ssqrtsb = false;
       else {
 	cout << "wrong option, exiting" << endl;
 	exit(0);
@@ -399,7 +413,7 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 
       error->Draw("AXIS");
       setXAxisBot(error, styler.getPadRatio());
-      setYAxisBot(error, styler.getPadRatio());
+
       TList* signalBot = (bottomType != Ratio) ? signalBottom(sigHists, error) : signalBottom(sigHists, datahist, error);
 
       TF1* PrevFitTMP = new TF1();
@@ -408,9 +422,10 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 	tmpsig = (TH1D*)signalBot->Last();
 	delete PrevFitTMP;
 	PrevFitTMP = createLine(tmpsig);
-      }
+	setYAxisBot(error->GetYaxis(), tmpsig, styler.getPadRatio());
+      } else setYAxisBot(error->GetYaxis(), signalBot, styler.getPadRatio());
+
       tmpsig = (TH1D*)signalBot->First();
-      cout << signalBot->GetSize();
       while(tmpsig) {
 	tmpsig->Draw("same");
 	tmpsig = (TH1D*)signalBot->After(tmpsig);
@@ -421,7 +436,7 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
       c->Write(c->GetName());
       c->Close();
       
-      delete hsdraw;
+      hsdraw->Delete();
       delete datahist;
       delete error;
       delete sigHists;
@@ -490,11 +505,12 @@ TLegend* createLeg(TList* bgl, TList* sigl) {
 }
 
 TGraphErrors* createError(TH1* error, bool ratio) {
-  Double_t mcX[5000];
-  Double_t mcY[5000];
-  Double_t mcErrorX[5000];
-  Double_t mcErrorY[5000];
-      
+  int Nbins =  error->GetXaxis()->GetNbins();
+  Double_t* mcX = new Double_t[Nbins];
+  Double_t* mcY = new Double_t[Nbins];
+  Double_t* mcErrorX = new Double_t[Nbins];
+  Double_t* mcErrorY = new Double_t[Nbins];
+
   for(int bin=0; bin < error->GetXaxis()->GetNbins(); bin++) {
     mcY[bin] = (ratio) ? 1.0 : error->GetBinContent(bin+1);
     mcErrorY[bin] = (ratio) ?  error->GetBinError(bin+1)/error->GetBinContent(bin+1) : error->GetBinError(bin+1);
@@ -506,11 +522,16 @@ TGraphErrors* createError(TH1* error, bool ratio) {
   mcError->SetLineWidth(1);
   mcError->SetFillColor(1);
   mcError->SetFillStyle(3002);
+
+  delete[] mcX;
+  delete[] mcY;
+  delete[] mcErrorX;
+  delete[] mcErrorY;
   return mcError;
 }
 
 void sizePad(double ratio, TVirtualPad* pad, bool isTop) {
-  if(isTop)   pad->SetPad("top", "top", 0, 1 / (1.0 + ratio), 1, 1, 0);
+  if(isTop) pad->SetPad("top", "top", 0, 1 / (1.0 + ratio), 1, 1, 0);
   else  {
     pad->SetPad("bottom", "bottom", 0, 0, 1, 1 / (1.0 + ratio), 0);
     pad->SetMargin(pad->GetLeftMargin(),pad->GetRightMargin(),ratio*pad->GetBottomMargin(),0);
@@ -536,7 +557,6 @@ vector<double> rebinner(TH1* hist, double limit) {
   double limit2 = pow(limit,2);
   bool foundfirst = false;
   double end;
-
 
   //how to tell if ok?
 
@@ -615,15 +635,15 @@ THStack* rebinStack(THStack* hs, double* binner, int total) {
   THStack* newstack = new THStack(hs->GetName(), hs->GetName());
   TList* list = (TList*)hs->GetHists();
 
-  TIter next(list);
-  TH1* tmp = NULL;
-  while ( (tmp = (TH1*)next()) ) {
-    TH1* forstack = (TH1*)tmp->Clone();
-    forstack = forstack->Rebin(total, tmp->GetName(), binner);
+  TH1D* tmp = (TH1D*)list->First();
+  while ( tmp ) {
+    TH1D* forstack = (TH1D*)tmp->Clone();
+    forstack = (TH1D*)forstack->Rebin(total, tmp->GetName(), binner);
     newstack->Add(forstack);
+    tmp = (TH1D*)list->After(tmp);
   }
   
-  delete hs;
+  hs->Delete();
 
   return newstack;
 }
@@ -632,63 +652,13 @@ THStack* rebinStack(THStack* hs, double* binner, int total) {
 
 void setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
   TAxis* yaxis = hs->GetYaxis();
-  //if(dividebins)yaxis->SetTitle("Events/GeV");////get axis title stuff
+  //  if(dividebins) yaxis->SetTitle("Events/GeV");////get axis title stuff
+  yaxis->SetTitle("Events");////Need to sort out units and stuff
   yaxis->SetLabelSize(hs->GetXaxis()->GetLabelSize());
   double max = (error->GetMaximum() > datahist->GetMaximum()) ? error->GetMaximum() : datahist->GetMaximum();
   hs->SetMaximum(max*(1.0/ratio + 1.0));
 
 }
-
-
-TH1D* printBottom(TH1D* primary, TH1D* background) {
-  
-  TH1D* returnHist = (TH1D*)primary->Clone();
-  returnHist->SetTitle("");
-
-
-
-  int Nbins = returnHist->GetXaxis()->GetNbins();
-    
-  for(int i = 0; i < Nbins;i++) {
-    if(returnHist->GetBinContent(i+1) <= 0 && background->GetBinContent(i+1) <= 0) continue;
-    int edge1 = i+1, edge2= i+1;
-    double sigErr, backErr;
-    if(bottomType == SigLeft) edge1 = 0;
-    if(bottomType == SigRight) edge2 = Nbins;
-    double sigInt = returnHist->IntegralAndError(edge1, edge2, sigErr);
-    double backInt = background->IntegralAndError(edge1, edge2, backErr);
-	  
-    double total = sigInt/sqrt(sigInt+backInt);
-    double perErr = pow(sigErr/sigInt-sigErr/(2*(sigInt+backInt)),2) + pow(backErr/(2*(sigInt+backInt)),2);
-
-    returnHist->SetBinContent(i+1, total);
-    returnHist->SetBinError(i+1, total*perErr);
-
-  // } else if(bottomType == Ratio) {
-  //   returnHist->Divide(background);
-
-    // TGraphErrors* errorratio = createError(error, true);
-    // TF1 *PrevFitTMP = createLine(data_mc);
-    // TH1D* botAxis = (TH1D*)datahist->Clone();
-
-    // botAxis->Draw("AXIS");
-    // if(sigHists->GetSize() > 0) {
-    //   TH1D* onesig = (TH1D*)sigHists->First();
-    //   while(onesig) {
-    // 	TH1D* tmphist = (TH1D*)onesig->Clone();
-    // 	tmphist->Divide(error);
-    // 	tmphist->Draw("same");
-    // 	onesig = (TH1D*)sigHists->After(onesig);
-    //   }
-    // }
-    // data_mc->Draw("sameep1");
-
-    // errorratio->Draw("2");
-  }
-  return returnHist;
-}
-
-//  }
 
 TList* signalBottom(TList* signal, TH1D* background) {
   TList* returnList = new TList();
@@ -707,8 +677,8 @@ TList* signalBottom(TList* signal, TH1D* background) {
       double sigInt = signif->IntegralAndError(edge1, edge2, sigErr);
       double backInt = background->IntegralAndError(edge1, edge2, backErr);
 	  
-      double total = sigInt/sqrt(sigInt+backInt);
-      double perErr = pow(sigErr/sigInt-sigErr/(2*(sigInt+backInt)),2) + pow(backErr/(2*(sigInt+backInt)),2);
+      double total = (ssqrtsb) ? sigInt/sqrt(sigInt+backInt) : sigInt/sqrt(backInt);
+      double perErr = (ssqrtsb) ? pow(sigErr/sigInt-sigErr/(2*(sigInt+backInt)),2) + pow(backErr/(2*(sigInt+backInt)),2) : pow(sigErr/sigInt,2) + pow(backErr/(2*backInt),2);
 
       signif->SetBinContent(i+1, total);
       signif->SetBinError(i+1, total*perErr);
@@ -749,9 +719,7 @@ void setXAxisBot(TH1* data_mc, double ratio) {
   xaxis->SetLabelSize(xaxis->GetLabelSize()*ratio);
 }
 
-void setYAxisBot(TH1* data_mc, double ratio) {
-  TAxis* yaxis = data_mc->GetYaxis();
-
+void setYAxisBot(TAxis* yaxis, TH1* data_mc, double ratio) {
   double divmin = 0.0, divmax = 2.99;
   double low=2.99, high=0.0, tmpval;
   for(int i = 0; i < data_mc->GetXaxis()->GetNbins(); i++) {
@@ -773,6 +741,22 @@ void setYAxisBot(TH1* data_mc, double ratio) {
   yaxis->SetTitleSize(ratio*yaxis->GetTitleSize());
   yaxis->SetTitleOffset(yaxis->GetTitleOffset()/ratio);
   yaxis->SetTitle("#frac{Data}{MC}");
+}
+
+void setYAxisBot(TAxis* yaxis, TList* signal, double ratio) {
+  double max = 0;
+  TH1D* tmphist = (TH1D*)signal->First();
+  while(tmphist) {
+    max = (max < tmphist->GetMaximum()) ? tmphist->GetMaximum() : max;
+    tmphist = (TH1D*)signal->After(tmphist);
+  }
+
+  yaxis->SetRangeUser(0,max*11./10 -0.00001);
+  yaxis->SetLabelSize(yaxis->GetLabelSize()*ratio);
+  yaxis->SetTitleSize(ratio*yaxis->GetTitleSize());
+  yaxis->SetTitleOffset(yaxis->GetTitleOffset()/ratio);
+  if(ssqrtsb) yaxis->SetTitle("#frac{S}{#sqrt{S+B}}");
+  else  yaxis->SetTitle("#frac{S}{#sqrt{B}}");
 }
 
 
