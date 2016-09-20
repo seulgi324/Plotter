@@ -50,6 +50,10 @@ void read_info(string, string&, map<string, Normer*>&);
 int getModTime(const char*);
 int shouldAdd(string, string);
 
+TH1D* printBottom(TH1D*, TH1D*);
+TList* signalBottom(TList*, TH1D*);
+TList* signalBottom(TList*, TH1D*, TH1D*);
+
 void CreateStack( TDirectory*, Plot&, Style&, ofstream&);
 THStack* sortStack(THStack*);
 TLegend* createLeg(TList* bgl=NULL, TList* sigl=NULL);
@@ -58,7 +62,7 @@ void sizePad(double, TVirtualPad*, bool);
 TF1* createLine(TH1*);
 void setXAxisTop(TH1*, TH1*, THStack*);
 void setYAxisTop(TH1*, TH1*, double, THStack*);
-void setXAxisBot(TH1*, TAxis*, double);
+void setXAxisBot(TH1*, double);
 void setYAxisBot(TH1*, double);
 vector<double> rebinner(TH1*, double);
 double* rebinner(TH1*, TH1*, double);
@@ -67,4 +71,4 @@ void divideBin(TH1*, TH1*,THStack*);
 
 enum Bottom {SigLeft, SigRight, SigBoth, SigBin, Ratio};
 
-Bottom bottomType = SigBin;
+Bottom bottomType = Ratio;
