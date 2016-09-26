@@ -4,9 +4,12 @@ legend scale by number of entries
 legend placed so doesn't cover up
 divide by bin size stuff working
 get sigboth working (if need it)
-make main work (aka classify)
 make axis independent
 y axis resizing (make work better)
 help message
 give more options
 no top or bottom
+put cms prelimary on graph
+Luminosity on top
+
+

@@ -1,97 +1,128 @@
-vector<double> rebinner(TH1* hist, double limit);
+void CreateGraph(TDirectory*, TList*);
 
 void makeGraphs() {
+  cout << "begin" << endl;
+  TFile* newfile = new TFile("compareFake.root", "RECREATE");
+  TList* files = new TList();
+  TFile* f4 = new TFile("W+Jets.root");
+  TFile* f1 = new TFile("Sub.root");
+  TFile* f2 = new TFile("Lead.root");
+  TFile* f3 = new TFile("Rand.root");
+  files->Add(f1);
+  files->Add(f2);
+  files->Add(f3);
+  files->Add(f4);
+  cout << "before" << endl;
+  gROOT->SetBatch(kTRUE);
+  CreateGraph(newfile, files);
+  gROOT->SetBatch(kFALSE);
+}
 
-  TFile* withfile = new TFile("MCwith.root");
-  TFile* withoutfile = new TFile("MCwithout.root");
 
-  withfile->cd("METCut");
-  TList* with = new TList();
-  without->Add((TH1D*)gDirectory->FindObjectAny("NVertices"));
-  without->Add((TH1D*)gDirectory->FindObjectAny("Met"));
-  without->Add((TH1D*)gDirectory->FindObjectAny("Meff"));
-  without->Add((TH1D*)gDirectory->FindObjectAny("BJetPt"));
 
-  withoutfile->cd("METCut");
-  TList* without = new TList();
-  without->Add((TH1D*)gDirectory->FindObjectAny("NVertices"));
-  without->Add((TH1D*)gDirectory->FindObjectAny("Met"));
-  without->Add((TH1D*)gDirectory->FindObjectAny("Meff"));
-  without->Add((TH1D*)gDirectory->FindObjectAny("BJetPt"));
+ void CreateGraph( TDirectory *target, TList* files) {
+   cout << "start" << endl;
 
-  TFile* newfile = new TFile("both.root", "RECREATE");
-  newfile->cd();
 
-  TH1D* hw = (TH1D*)with->First();
-  TH1D* hwo = (TH1D*)without->First();
-  while(hw) {
+  TString path( (char*)strstr( target->GetPath(), ":" ) );
+  path.Remove( 0, 2 );
+
+  TFile* openFile = (TFile*)files->First();
+  openFile->cd( path );
+  TDirectory *current_sourcedir = gDirectory;
+
+  //  Bool_t status = TH1::AddDirectoryStatus();
+  //  TH1::AddDirectory(kFALSE);
+
+
+  // loop over all keys in this directory
+  TIter nextkey( current_sourcedir->GetListOfKeys() );
+  TKey *key, *oldkey=0;
+  while ( (key = (TKey*)nextkey())) {
+
+    //keep only the highest cycle number for each key
+    if (oldkey && !strcmp(oldkey->GetName(),key->GetName())) continue;
+
+    openFile->cd( path );
+
+    TObject *obj = key->ReadObj();
+    if ( obj->IsA() ==  TH1D::Class() ) {
+
+      TH1D* h1 = (TH1D*)obj;
+          
+      TList* allFiles = new TList();
+      TFile *nextfile = (TFile*)files->After(openFile);
+      string title = openFile->GetTitle();
+      title = title.substr(0, title.size()-5);
+      h1->SetTitle(title.c_str());
+      h1->SetLineWidth(3);
+      h1->SetLineColor(50);
+	  
+      allFiles->Add(h1);
+      int nfile = 1;
+      while ( nextfile ) {
+	nextfile->cd( path );
+	TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
+	if(key2) {
+	  
+	  TH1D* h2 = (TH1D*)key2->ReadObj();
+	  title = nextfile->GetTitle();
+	  title = title.substr(0, title.size()-5);
+	  h2->SetTitle(title.c_str());
+	  h2->SetLineWidth(3);
+	  h2->SetLineColor(50+nfile*10);
+	  h2->Scale(h1->Integral()/h2->Integral());
+	  allFiles->Add(h2);
+
+	}
+	nfile++;
+	nextfile = (TFile*)files->After(nextfile);
+      }
     
-    vector<double> bins = rebinner(wMET, 0.3);
-    if(bins.size() == 0) return;
-    double* binner = new double[bins.size()];
-    bool passed = true;
-    for(int i = 0; i < bins.size(); i++) {
-      if(i == 0) {}
-      else if(bins.at(bins.size() - i) >= bins.at(bins.size() - i - 1))  {
-	passed = false;
-	break;
+      TLegend* leg = new TLegend(0.73,0.70,0.93,0.90);
+
+      TH1D* tmp = (TH1D*)allFiles->First();
+      while( tmp ) {
+	leg->AddEntry(tmp, tmp->GetTitle(), "lep");
+	tmp = (TH1D*)allFiles->After(tmp);
       }
 
-      binner[i] = bins.at(bins.size() - i - 1);
-    }
-    wMET = (TH1D*)wMET->Rebin(bins.size()-1, "wMET_rebin", binner);
-    woMET = (TH1D*)woMET->Rebin(bins.size()-1, "woMET_rebin", binner);
-  
-    TH1D* sub = (TH1D*)wMET->Clone();
-    sub->Add(woMET, -1);
+      target->cd();
 
-    TCanvas* c1 = new TCanvas();
-    sub->Draw();
-    c1->Write("nvertices");
-
-    c1->Close();
-    hw = (TH1D*)with->After(hw);
-    hwo = (TH1D*)without->After(hwo);
-  }
+      TCanvas *c = new TCanvas(h1->GetName(), h1->GetName());//403,50,600,600);
+      double max = 0;
+      tmp = (TH1D*)allFiles->First();
+      TH1D* first = tmp;
+      while(tmp) {
+	max = (max < tmp->GetMaximum()) ? tmp->GetMaximum() : max;
+	tmp->Draw("sameC");
+      	tmp = (TH1D*)allFiles->After(tmp);
+      }
+      leg->Draw();
+      first->GetYaxis()->SetRangeUser(0, max*(1+1./15));
 
 
-    
-}
+      ///second pad
+      c->Write(c->GetName());
+      c->Close();
+      allFiles->Delete();
 
+    } else if ( obj->IsA()->InheritsFrom( TDirectory::Class() ) ) {
+      target->cd();
+      TDirectory *newdir = target->mkdir( obj->GetName(), obj->GetTitle() );
 
-vector<double> rebinner(TH1* hist, double limit) {
-  vector<double> bins;
-  double toterror = 0.0, prevbin=0.0;
-  double limit2 = pow(limit,2);
-  bool foundfirst = false;
-  double end;
+      CreateGraph( newdir, files );
 
-  //  if(hist) return new double(1);
-  //how to tell if ok?
+    } else if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
+      continue;
 
-  if(hist->GetEntries() == 0 || hist->Integral() <= 0) return bins;
-
-  for(int i = hist->GetXaxis()->GetNbins(); i > 0; i--) {
-    if(hist->GetBinContent(i) <= 0.0) continue;
-    if(!foundfirst) { 
-      bins.push_back(hist->GetXaxis()->GetBinUpEdge(i));
-      foundfirst = true;
-    } else end = hist->GetXaxis()->GetBinLowEdge(i);
-
-    if(toterror* prevbin != 0.) toterror *= pow(prevbin,2)/pow(prevbin+hist->GetBinContent(i),2);
-    prevbin += hist->GetBinContent(i);
-    toterror += (2 * pow(hist->GetBinError(i),2))/pow(prevbin,2);
-    if(toterror < limit2) {
-      bins.push_back(hist->GetXaxis()->GetBinLowEdge(i));
-      toterror = 0.0;
-      prevbin = 0.0;
+    } else {
+         cout << "Unknown object type, name: "
+	   << obj->GetName() << " title: " << obj->GetTitle() << endl;
     }
   }
 
-  if(bins.back() != end) {
-    bins.push_back(end);
-    if(hist->GetXaxis()->GetXmin() >= 0 && end !=hist->GetXaxis()->GetXmin()) bins.push_back(hist->GetXaxis()->GetXmin());
-  }
-
-  return bins;
+  //  TH1::AddDirectory(kTRUE);
 }
+
+

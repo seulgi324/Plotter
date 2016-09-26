@@ -36,6 +36,7 @@ using namespace std;
 class Normer {
  public:  
   Normer();
+  Normer(vector<string>);
   Normer(const Normer& other);
   Normer& operator=(const Normer& rhs);
   ~Normer();
@@ -51,6 +52,11 @@ class Normer {
   bool isData=false;
   int use=3;
 
+  
+  void setValues(vector<string>);
+  void setLumi(double);
+  int shouldAdd(string, string);
+  int getModTime(const char*);
   void MergeRootfile( TDirectory*);
   void print();
 };

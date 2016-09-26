@@ -1,197 +1,17 @@
 #include "Plotter.h"
-#include "Normalizer.h"
 
 using namespace std;
 
+template <typename T>
+string to_string_with_precision(const T a_value, const int n = 6);
 
-Plot fullPlot;
-double lumi;
-string stylename = "default";
-bool ssqrtsb = true;
+void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 
-int main(int argc, char* argv[]) {
-  if(argc < 2) {
-    cerr << "No config file given: Exiting" << endl;
-    exit(1);
-  }
+  gStyle = styler.getStyle();
 
-  string output;
-  map<string, Normer*> plots;
-  vector<string> inputnames;
-  for(int i = 1; i < argc; ++i) {
-    if(argv[i][0] == '-') {
-      if(strcmp(argv[i],"-help") == 0) {
-	cout << "Usage: ./Plotter [OPTION] [CONFIG FILE]" << endl;
-	cout << "Plotter allows for making stack plots with ratio or significance plots as a\n" << endl;
-	cout << "secondary graph. The Default graph is the Ratio plot.  You can change this with\nthe different options" << endl << endl;
-	cout << "    -sigleft      Significance plot cumulative from the left. Entry in bin i" << endl;
-	cout << "                  represents siginifcance if events with values in bins greater" << endl;
-	cout << "                  than i are cut" << endl;
-	cout << "    -sigright     Significance plot cumulative from the right. Entry in bin i" << endl;
-	cout << "                  represents significance if events with values in bins lower" << endl;
-	cout << "                  than i are cut" << endl;
-	cout << "    -sigbin       Significance plot with significance of each bin. Not" << endl;
-	cout << "                  cumulative, just significance of the respective bin" << endl;
-	cout << "    -ssqrtb       Default for Significance is using the formula:" << endl;
-        cout << "                  s/sqrt(s + b)" << endl;
-	cout << "                  This option changes the significance calculation to be:" << endl;
-	cout << "                  s/sqrt(b)" << endl;
-	exit(0);
-      } else if( strcmp(argv[i], "-sigleft") == 0) bottomType = SigLeft;
-      else if( strcmp(argv[i], "-sigright") == 0) bottomType = SigRight;
-      else if( strcmp(argv[i],"-sigbin") == 0) bottomType = SigBin;
-      else if( strcmp(argv[i],"-ssqrtb") == 0) ssqrtsb = false;
-      else {
-	cout << "wrong option, exiting" << endl;
-	exit(0);
-      }
-    } else read_info(argv[i], output, plots);
-  }
-
-  int totalfiles = 0;
-  vector<string> datan, bgn, sign;
-  for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); ++it) {
-    if(it->second->use == 0) continue;
-    string filename = it->second->output;
-    while(filename.find("#") != string::npos) {
-      filename.erase(filename.find("#"), 1);
-    }
-    TFile* final = NULL;
-    if(it->second->use == 1) {
-      it->second->lumi = lumi;
-      it->second->print();
-      it->second->FileList = new TList();
-      for(vector<string>::iterator name = it->second->input.begin(); name != it->second->input.end(); ++name) {
-	it->second->FileList->Add(TFile::Open(name->c_str()));
-      }
-    
-      final = new TFile(filename.c_str(), "RECREATE");
-      it->second->MergeRootfile(final);
-    } else if(it->second->use == 2) {
-      final = new TFile(filename.c_str());
-    }
-    final->SetTitle(it->second->output.c_str());
-    fullPlot.addFile(it->second->type, final);
-    totalfiles++;
-    if(it->second->type == "data") datan.push_back(it->second->output);
-    else if(it->second->type == "bg") bgn.push_back(it->second->output);
-    else if(it->second->type == "sig") sign.push_back(it->second->output);
-  }
-  TFile* final = new TFile(output.c_str(), "RECREATE");
-  ofstream logfile;
-  logfile.open("log.txt", ios::out);
-  logfile << "\\begin{tabular}{ | l |";
-  for(int i = 0; i < totalfiles; i++) {
-    logfile << " c |";
-  }
-  logfile << " }" << endl << "\\hline" << endl << "Process";
-  for(vector<string>::iterator it = datan.begin(); it != datan.end(); it++) logfile << " & " << it->substr(0, it->length()-5);
-  for(vector<string>::iterator it = bgn.begin(); it != bgn.end(); it++) logfile << " & " << it->substr(0, it->length()-5);
-  for(vector<string>::iterator it = sign.begin(); it != sign.end(); it++) logfile << " & " << it->substr(0, it->length()-5);
-  logfile << "\\\\ \\hline" << endl;
-
-  Style stylez("style/" + stylename);
-
-  gStyle = stylez.getStyle();
-  CreateStack(final, fullPlot, stylez, logfile);
-  final->Close();
-  logfile << "\\end{tabular}" << endl;
-  logfile.close();
-}
-
-
-void read_info(string filename, string& output, map<string, Normer*>& plots) {
-  typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-  ifstream info_file(filename);
-  boost::char_separator<char> sep(", \t");
-
-  if(!info_file) {
-    std::cout << "could not open file " << filename <<std::endl;
-    exit(1);
-  }
-
-  vector<string> stemp;
-  string group, line;
-  while(getline(info_file, line)) {
-    tokenizer tokens(line, sep);
-    stemp.clear();
-    for(tokenizer::iterator iter = tokens.begin();iter != tokens.end(); iter++) {
-      if( ((*iter)[0] == '/' && (*iter)[0] == '/') || ((*iter)[0] == '#') ) break;
-      stemp.push_back(*iter);
-
-    }
-
-    if(stemp.size() >= 2) {
-      if(stemp[0].find("lumi") != string::npos) lumi = stod(stemp[1]);
-      else if(stemp[0].find("output") != string::npos) output = stemp[1];
-      else if(stemp[0].find("style") != string::npos) stylename = stemp[1];
-      else if(plots.find(stemp[1]) == plots.end()) { 
-	Normer* tmpplot = new Normer();
-	tmpplot->input.push_back(stemp[0]);
-	tmpplot->output = stemp[1];
-	tmpplot->use = shouldAdd(stemp[0], stemp[1]);
-	tmpplot->CumulativeEfficiency.push_back(1.);
-	tmpplot->scaleFactor.push_back(1.);
-	tmpplot->scaleFactorError.push_back(0.);
-	tmpplot->integral.push_back(0);
-	if(stemp.size() == 2) {
-	  tmpplot->xsec.push_back(1.0);
-	  tmpplot->skim.push_back(1.0);
-	  tmpplot->isData = true;
-	  tmpplot->type = "data";
-	}    
-	plots[stemp[1]] = tmpplot;
-      } else {
-	plots[stemp[1]]->input.push_back(stemp[0]);
-	plots[stemp[1]]->use = min(shouldAdd(stemp[0], stemp[1]),plots[stemp[1]]->use);
-	plots[stemp[1]]->CumulativeEfficiency.push_back(1.);
-	plots[stemp[1]]->scaleFactor.push_back(1.);
-	plots[stemp[1]]->scaleFactorError.push_back(0.);
-	plots[stemp[1]]->integral.push_back(0);
-	if(stemp.size() == 2) {
-	  plots[stemp[1]]->xsec.push_back(1.0);
-	  plots[stemp[1]]->skim.push_back(1.0);
-	}    
-
-      }
-      if(stemp.size() == 5) {
-	plots[stemp[1]]->xsec.push_back(stod(stemp[2]));
-	plots[stemp[1]]->skim.push_back(stod(stemp[3]));
-	if(plots[stemp[1]]->type == "") plots[stemp[1]]->type = stemp[4];
-      }
-    } 
-  }
-  info_file.close();
-
-}
-
-int shouldAdd(string infile, string globalFile) {
-  struct stat buffer;
-  if(stat(infile.c_str(), &buffer) != 0) return 0;
-  ////need to change so doesn't make plot if fatal error (eg file doesn't exist!
-  else if(stat(globalFile.c_str(), &buffer) != 0) return 1;
-  else if(getModTime(globalFile.c_str()) > getModTime(infile.c_str())) return 2;
-  else return 1;
-
-}
-
-int getModTime(const char *path) {
-  struct stat attr;
-  stat(path, &attr);
-  char date[100] = {0};
-  strftime(date, 100, "%s", localtime(&attr.st_mtime));
-  return atoi(date);
-
-}
-
-/*-----------------------------*/
-
-
-void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfile) {
-
-  TList* datalist = plot.FileList[0];
-  TList* bglist = plot.FileList[1];
-  TList* sglist = plot.FileList[2];
+  TList* datalist = FileList[0];
+  TList* bglist = FileList[1];
+  TList* sglist = FileList[2];
 
   TString path( (char*)strstr( target->GetPath(), ":" ) );
   path.Remove( 0, 2 );
@@ -199,7 +19,6 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
   TFile *dataStart = (TFile*)datalist->First();
   dataStart->cd( path );
   TDirectory *current_sourcedir = gDirectory;
-
   Bool_t status = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
 
@@ -209,14 +28,16 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
   current_sourcedir->GetObject("Events", events);
 
   if(events) {
-    logfile << current_sourcedir->GetName();
-    logfile << " & " << fixed << events->GetBinContent(2) << setprecision(1);
+    vector<string> logEff;
+    string totalval = "";
+    logEff.push_back(current_sourcedir->GetName());
+    logEff.push_back(to_string_with_precision(events->GetBinContent(2), 1));
 
     TFile *nextsource = (TFile*)datalist->After( dataStart );
     while( nextsource) {
       nextsource->cd(path);
       gDirectory->GetObject("Events", events);
-      logfile << " & " << fixed << events->GetBinContent(2) << setprecision(1);
+      logEff.push_back(to_string_with_precision(events->GetBinContent(2), 1));
       nextsource = (TFile*)datalist->After( nextsource );
     }
 
@@ -224,20 +45,23 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
     while ( nextsource ) {
       nextsource->cd(path);
       gDirectory->GetObject("Events", events);
-      logfile << " & " << fixed << events->GetBinContent(2) << setprecision(1) << " $\\pm$" << fixed << events->GetBinError(2) << setprecision(1);
+      totalval = to_string_with_precision(events->GetBinContent(2), 1) + "$\\pm$" + to_string_with_precision(events->GetBinError(2), 1);
+      logEff.push_back(totalval);
       nextsource = (TFile*)bglist->After( nextsource );
     }
     nextsource = (TFile*)sglist->First();
     while ( nextsource ) {
       nextsource->cd(path);
       gDirectory->GetObject("Events", events);
-      logfile << " & " << fixed << events->GetBinContent(2) << setprecision(1) << " $\\pm$" << fixed << events->GetBinError(2) << setprecision(1);
-      nextsource = (TFile*)sglist->After( nextsource );
+      totalval = to_string_with_precision(events->GetBinContent(2), 1) + "$\\pm$" + to_string_with_precision(events->GetBinError(2), 1);
+      logEff.push_back(totalval);
+     nextsource = (TFile*)sglist->After( nextsource );
     }
-    logfile << " \\\\ \\hline" << endl;
+    logfile.addLine(logEff);
+    delete events;
   }
+  events = NULL;
 
-  delete events;
 
   // loop over all keys in this directory
   TIter nextkey( current_sourcedir->GetListOfKeys() );
@@ -250,7 +74,7 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
     dataStart->cd( path );
 
     TObject *obj = key->ReadObj();
-    if ( obj->IsA() ==  TH1D::Class() ) {
+    if ( obj->IsA() ==  TH1D::Class() || obj->IsA() ==  TH1F::Class() ) {
       
       TH1 *h1 = (TH1*)obj;
       TH1D* error = new TH1D("error", "error", h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
@@ -292,7 +116,7 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 	  h2->SetTitle(title.c_str());
 	  h2->SetLineColor(1);
 	  h2->SetFillStyle(1001);
-	  h2->SetFillColor(plot.color[nfile]);
+	  h2->SetFillColor(color[nfile]);
 	
 	  hs->Add(h2);
 	}
@@ -318,7 +142,7 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
 	  string title = nextfile->GetTitle();
 	  title = title.substr(0, title.size()-5);
 	  h2->SetTitle(title.c_str());
-	  h2->SetLineColor(plot.color[nfile]);
+	  h2->SetLineColor(color[nfile]);
 	  h2->SetLineWidth(3);
 	  h2->SetLineStyle(2);
 
@@ -450,7 +274,7 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
       target->cd();
       TDirectory *newdir = target->mkdir( obj->GetName(), obj->GetTitle() );
 
-      CreateStack( newdir, plot, styler, logfile );
+      CreateStack( newdir, logfile );
 
     } else if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
       continue;
@@ -464,7 +288,20 @@ void CreateStack( TDirectory *target, Plot& plot, Style& styler, ofstream& logfi
   TH1::AddDirectory(status);
 }
 
-THStack* sortStack(THStack* old) {
+
+
+template <typename T>
+string to_string_with_precision(const T a_value, const int n)
+{
+  ostringstream out;
+  out << fixed << setprecision(n) << a_value;
+  return out.str();
+}
+
+
+
+
+THStack* Plotter::sortStack(THStack* old) {
   if(old == NULL || old->GetNhists() == 0) return old;
   string name = old->GetName();
 
@@ -488,7 +325,7 @@ THStack* sortStack(THStack* old) {
   return newstack;
 } 
 
-TLegend* createLeg(TList* bgl, TList* sigl) {
+TLegend* Plotter::createLeg(TList* bgl, TList* sigl) {
   TLegend* leg = new TLegend(0.73,0.70,0.93,0.90);
   vector<TList*> vlist;
   if(bgl!=NULL) vlist.push_back(bgl);
@@ -504,7 +341,7 @@ TLegend* createLeg(TList* bgl, TList* sigl) {
 
 }
 
-TGraphErrors* createError(TH1* error, bool ratio) {
+TGraphErrors* Plotter::createError(TH1* error, bool ratio) {
   int Nbins =  error->GetXaxis()->GetNbins();
   Double_t* mcX = new Double_t[Nbins];
   Double_t* mcY = new Double_t[Nbins];
@@ -530,7 +367,7 @@ TGraphErrors* createError(TH1* error, bool ratio) {
   return mcError;
 }
 
-void sizePad(double ratio, TVirtualPad* pad, bool isTop) {
+void Plotter::sizePad(double ratio, TVirtualPad* pad, bool isTop) {
   if(isTop) pad->SetPad("top", "top", 0, 1 / (1.0 + ratio), 1, 1, 0);
   else  {
     pad->SetPad("bottom", "bottom", 0, 0, 1, 1 / (1.0 + ratio), 0);
@@ -539,7 +376,7 @@ void sizePad(double ratio, TVirtualPad* pad, bool isTop) {
   }
 }
 
-TF1* createLine(TH1* data_mc) {
+TF1* Plotter::createLine(TH1* data_mc) {
   TF1 *PrevFitTMP = new TF1("PrevFitTMP","pol0",-10000,10000);
   PrevFitTMP->SetMarkerStyle(20);
   PrevFitTMP->SetLineColor(2);
@@ -551,7 +388,7 @@ TF1* createLine(TH1* data_mc) {
   return PrevFitTMP;
 }
  
-vector<double> rebinner(TH1* hist, double limit) {
+vector<double> Plotter::rebinner(TH1* hist, double limit) {
   vector<double> bins;
   double toterror = 0.0, prevbin=0.0;
   double limit2 = pow(limit,2);
@@ -588,7 +425,7 @@ vector<double> rebinner(TH1* hist, double limit) {
 }
 
 
-double* rebinner(TH1* hist1, TH1* hist2, double limit) {
+double* Plotter::rebinner(TH1* hist1, TH1* hist2, double limit) {
   vector<double> bins;
   double toterror1 = 0.0, prevbin1=0.0;
   double toterror2 = 0.0, prevbin2=0.0;
@@ -631,7 +468,7 @@ double* rebinner(TH1* hist1, TH1* hist2, double limit) {
   return newbins;
 }
 
-THStack* rebinStack(THStack* hs, double* binner, int total) {
+THStack* Plotter::rebinStack(THStack* hs, double* binner, int total) {
   THStack* newstack = new THStack(hs->GetName(), hs->GetName());
   TList* list = (TList*)hs->GetHists();
 
@@ -650,7 +487,7 @@ THStack* rebinStack(THStack* hs, double* binner, int total) {
 
 
 
-void setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
+void Plotter::setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
   TAxis* yaxis = hs->GetYaxis();
   //  if(dividebins) yaxis->SetTitle("Events/GeV");////get axis title stuff
   yaxis->SetTitle("Events");////Need to sort out units and stuff
@@ -660,7 +497,7 @@ void setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
 
 }
 
-TList* signalBottom(TList* signal, TH1D* background) {
+TList* Plotter::signalBottom(TList* signal, TH1D* background) {
   TList* returnList = new TList();
   
   TH1D* holder = (TH1D*)signal->First();
@@ -690,7 +527,7 @@ TList* signalBottom(TList* signal, TH1D* background) {
   return returnList;
 }
 
-TList* signalBottom(TList* signal, TH1D* data, TH1D* background) {
+TList* Plotter::signalBottom(TList* signal, TH1D* data, TH1D* background) {
   TList* returnList = new TList();
   
   TH1D* holder = (TH1D*)signal->First();
@@ -714,12 +551,12 @@ TList* signalBottom(TList* signal, TH1D* data, TH1D* background) {
 
   
 
-void setXAxisBot(TH1* data_mc, double ratio) {
+void Plotter::setXAxisBot(TH1* data_mc, double ratio) {
   TAxis* xaxis = data_mc->GetXaxis();
   xaxis->SetLabelSize(xaxis->GetLabelSize()*ratio);
 }
 
-void setYAxisBot(TAxis* yaxis, TH1* data_mc, double ratio) {
+void Plotter::setYAxisBot(TAxis* yaxis, TH1* data_mc, double ratio) {
   double divmin = 0.0, divmax = 2.99;
   double low=2.99, high=0.0, tmpval;
   for(int i = 0; i < data_mc->GetXaxis()->GetNbins(); i++) {
@@ -743,7 +580,7 @@ void setYAxisBot(TAxis* yaxis, TH1* data_mc, double ratio) {
   yaxis->SetTitle("#frac{Data}{MC}");
 }
 
-void setYAxisBot(TAxis* yaxis, TList* signal, double ratio) {
+void Plotter::setYAxisBot(TAxis* yaxis, TList* signal, double ratio) {
   double max = 0;
   TH1D* tmphist = (TH1D*)signal->First();
   while(tmphist) {
@@ -760,7 +597,7 @@ void setYAxisBot(TAxis* yaxis, TList* signal, double ratio) {
 }
 
 
-void divideBin(TH1* data, TH1* error, THStack* hs) {
+void Plotter::divideBin(TH1* data, TH1* error, THStack* hs) {
   for(int i = 0; i < data->GetXaxis()->GetNbins(); i++) {
     data->SetBinContent(i+1, data->GetBinContent(i+1)/data->GetBinWidth(i+1));
     data->SetBinError(i+1, data->GetBinError(i+1)/data->GetBinWidth(i+1));
@@ -784,3 +621,85 @@ void divideBin(TH1* data, TH1* error, THStack* hs) {
 }
 
 
+
+
+int Plotter::getSize() {
+  return FileList[0]->GetSize() + FileList[1]->GetSize() + FileList[2]->GetSize();
+}
+
+
+vector<string> Plotter::getFilenames(string option) {
+  vector<string> filenames;
+  TFile* tmp = NULL;
+  TList* worklist = NULL;
+  if(option == "data") worklist = FileList[0];
+  else if(option == "background") worklist = FileList[1];
+  else if(option == "signal") worklist = FileList[2];
+  else if(option == "all") {
+    for(int i = 0; i < 3; i++) {
+      tmp = (TFile*)FileList[i]->First();
+      while(tmp) {
+	filenames.push_back(tmp->GetTitle());
+	tmp = (TFile*)FileList[i]->After(tmp);
+      }
+    }
+    return filenames;
+    
+  } else {
+    cout << "Error in filename option, returning empty vector" << endl;
+    return filenames;
+  }
+  tmp = (TFile*)worklist->First();
+  while(tmp) {
+    filenames.push_back(tmp->GetTitle());
+    tmp = (TFile*)worklist->After(tmp);
+  }
+  worklist = NULL;
+  return filenames;
+  
+}
+
+void Plotter::setStyle(Style& style) {
+  this->styler = style;
+}
+
+void Plotter::addFile(Normer& norm) {
+  string filename = norm.output;
+  if(norm.use == 0) {
+    cout << filename << ": Not all files found" << endl;
+    return;
+  } 
+
+  while(filename.find("#") != string::npos) {
+    filename.erase(filename.find("#"), 1);
+  }
+
+  TFile* normedFile = NULL;
+  if(norm.use == 1) {
+    norm.print();
+    norm.FileList = new TList();
+    for(vector<string>::iterator name = norm.input.begin(); name != norm.input.end(); ++name) {
+      norm.FileList->Add(TFile::Open(name->c_str()));
+    }
+    
+    normedFile = new TFile(filename.c_str(), "RECREATE");
+    norm.MergeRootfile(normedFile);
+  } else if(norm.use == 2) {
+    cout << filename << " is already Normalized" << endl << endl;;
+    normedFile = new TFile(filename.c_str());
+  }
+
+  normedFile->SetTitle(norm.output.c_str());
+  
+  
+  if(norm.type == "data") FileList[0]->Add(normedFile);
+  else if(norm.type == "bg") FileList[1]->Add(normedFile);
+  else if(norm.type == "sig") FileList[2]->Add(normedFile);
+  
+
+}
+
+
+void Plotter::setBottomType(Bottom input) {
+  bottomType = input;
+}

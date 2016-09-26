@@ -3,6 +3,8 @@
 
 Style::Style() {
   styler = new TStyle("Styler", "Style");
+  read_info("style/default");
+  setStyle();
 }
 
 Style::Style(string infile) {
@@ -19,7 +21,7 @@ Style::Style(const Style& old) {
 Style& Style::operator=(const Style& rhs) {
   if(this == &rhs) return *this;
   
-  delete styler;
+  if(!styler) delete styler;
   styler = (TStyle*)rhs.styler->Clone();
   values = rhs.values;
   return *this;
@@ -188,4 +190,6 @@ void Style::setStyle() {
     else if(it->first == "DivideBins") dividebins = it->second;
     else if(it->first == "BinLimit") binlimit = it->second;
   }
+
+  gStyle = styler;
 }
