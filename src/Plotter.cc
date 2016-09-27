@@ -13,11 +13,17 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
   TList* bglist = FileList[1];
   TList* sglist = FileList[2];
 
+  if(bglist->GetSize() == 0) {
+    cout << "No backgrounds given: Aborting" << endl;
+    exit(1);
+  }
+  if(datalist->GetSize() == 0) cout << "No Data given: Plotting without Data" << endl;
+
   TString path( (char*)strstr( target->GetPath(), ":" ) );
   path.Remove( 0, 2 );
 
-  TFile *dataStart = (TFile*)datalist->First();
-  dataStart->cd( path );
+  TFile *firstFile = (TFile*)bglist->First();
+  firstFile->cd( path );
   TDirectory *current_sourcedir = gDirectory;
   Bool_t status = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
@@ -33,7 +39,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
     logEff.push_back(current_sourcedir->GetName());
     logEff.push_back(to_string_with_precision(events->GetBinContent(2), 1));
 
-    TFile *nextsource = (TFile*)datalist->After( dataStart );
+    TFile *nextsource = (TFile*)datalist->First();
     while( nextsource) {
       nextsource->cd(path);
       gDirectory->GetObject("Events", events);
@@ -71,7 +77,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
     //keep only the highest cycle number for each key
     if (oldkey && !strcmp(oldkey->GetName(),key->GetName())) continue;
 
-    dataStart->cd( path );
+    //   firstFile->cd( path );
 
     TObject *obj = key->ReadObj();
     if ( obj->IsA() ==  TH1D::Class() || obj->IsA() ==  TH1F::Class() ) {
@@ -83,8 +89,8 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       THStack *hs = new THStack(h1->GetName(),h1->GetName());
       
       /*------------data--------------*/
-      datahist->Add(h1);
-      TFile *nextfile = (TFile*)datalist->After(dataStart);
+
+      TFile *nextfile = (TFile*)datalist->First();
 
       while ( nextfile ) {
 	nextfile->cd( path );
@@ -196,13 +202,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       } 
 
       ///legend stuff
-      TLegend* legend = createLeg(hsdraw->GetHists());
-      legend->AddEntry(datahist, "Data", "lep");
-      TH1D* tmpsig = (TH1D*)sigHists->First();
-      while(tmpsig) {
-	legend->AddEntry(tmpsig, tmpsig->GetName(), "lep");
-	tmpsig = (TH1D*)sigHists->After(tmpsig);
-      }
+      TLegend* legend = createLeg(datahist, hsdraw->GetHists(), sigHists);
       
       ////divide by binwidth is option is given
       if(styler.getDivideBins()) divideBin(datahist, error, hsdraw); ///add sig stuff as well
@@ -222,7 +222,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       hsdraw->Draw();
       datahist->Draw("same");
       
-      tmpsig = (TH1D*)sigHists->First();
+      TH1D* tmpsig = (TH1D*)sigHists->First();
       while(tmpsig) {
 	tmpsig->Draw("same");
 	tmpsig = (TH1D*)sigHists->After(tmpsig);
@@ -230,6 +230,10 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       errorstack->Draw("2");
       legend->Draw();
       setYAxisTop(datahist, error, styler.getHeightRatio(), hsdraw);
+
+      // TPaveText* text = new TPaveText(0.05, 0.7, 0.5, 1.);
+      // text->AddText("CMS Preliminary");
+      // text->Draw();
 
       ///second pad
       c->cd(2);
@@ -325,20 +329,25 @@ THStack* Plotter::sortStack(THStack* old) {
   return newstack;
 } 
 
-TLegend* Plotter::createLeg(TList* bgl, TList* sigl) {
-  TLegend* leg = new TLegend(0.73,0.70,0.93,0.90);
-  vector<TList*> vlist;
-  if(bgl!=NULL) vlist.push_back(bgl);
-  if(sigl!=NULL) vlist.push_back(sigl);
-  for(vector<TList*>::iterator it = vlist.begin(); it != vlist.end(); ++it) {
-    TIter next(*it);
-    TH1* tmp = NULL;
-    while( (tmp = (TH1*)next()) ) {
-      leg->AddEntry(tmp, tmp->GetTitle(), "f");
-    }
+TLegend* Plotter::createLeg(TH1* data, TList* bgl, TList* sigl) {
+  double width = 0.04;
+  int items = bgl->GetSize() + sigl->GetSize();
+  items += (data->GetEntries() != 0) ? 1 : 0;
+  TLegend* leg = new TLegend(0.73, 0.9-items*width ,0.93,0.90);
+  
+  if(data->GetEntries() != 0) leg->AddEntry(data, "Data", "lep");
+  TH1* tmp = (TH1*)bgl->First();
+  while(tmp) {
+    leg->AddEntry(tmp, tmp->GetTitle(), "f");
+    tmp = (TH1*)bgl->After(tmp);
   }
-  return leg;
+  tmp = (TH1*)sigl->First();
+  while(tmp) {
+    leg->AddEntry(tmp, tmp->GetTitle(), "lep");
+    tmp = (TH1*)sigl->After(tmp);
+  }
 
+  return leg;
 }
 
 TGraphErrors* Plotter::createError(TH1* error, bool ratio) {

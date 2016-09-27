@@ -27,8 +27,9 @@ int main(int argc, char* argv[]) {
     if(argv[i][0] == '-') {
       if(strcmp(argv[i],"-help") == 0) {
 	cout << "Usage: ./Plotter [OPTION] [CONFIG FILE]" << endl;
-	cout << "Plotter allows for making stack plots with ratio or significance plots as a\n" << endl;
-	cout << "secondary graph. The Default graph is the Ratio plot.  You can change this with\nthe different options" << endl << endl;
+	cout << "Plotter allows for making stack plots with ratio or significance plots as a" << endl;
+	cout << "secondary graph. The Default graph is the Ratio plot.  You can change this with" << endl;
+	cout << "the different options" << endl << endl;
 	cout << "    -sigleft      Significance plot cumulative from the left. Entry in bin i" << endl;
 	cout << "                  represents siginifcance if events with values in bins greater" << endl;
 	cout << "                  than i are cut" << endl;

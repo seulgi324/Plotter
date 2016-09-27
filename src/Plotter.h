@@ -53,7 +53,6 @@ class Plotter {
   int color[10] = {100, 90, 80, 70, 60, 95, 85, 75, 65, 55};
   bool ssqrtsb = true;
   Bottom bottomType = Ratio;
-\
 
   void addFile(Normer&);
 
@@ -63,7 +62,7 @@ class Plotter {
 
   void CreateStack( TDirectory*, Logfile&); ///fix plot stuff
   THStack* sortStack(THStack*);
-  TLegend* createLeg(TList* bgl=NULL, TList* sigl=NULL);
+  TLegend* createLeg(TH1*, TList* bgl, TList* sigl);
   TGraphErrors* createError(TH1*, bool);
   void sizePad(double, TVirtualPad*, bool);
   TF1* createLine(TH1*);

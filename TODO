@@ -1,6 +1,5 @@
 get units of graph somehow
 y axis top needs divide units
-legend scale by number of entries
 legend placed so doesn't cover up
 divide by bin size stuff working
 get sigboth working (if need it)
