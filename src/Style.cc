@@ -193,3 +193,12 @@ void Style::setStyle() {
 
   gStyle = styler;
 }
+
+string getUnit(string title) {
+  string baseUnit, particle;
+
+
+  if(title.find("Eta") != string::npos) {
+
+  }
+}

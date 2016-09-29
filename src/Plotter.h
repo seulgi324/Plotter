@@ -32,7 +32,7 @@
 #include <array>
 #include <sstream>
 #include <iomanip>
-
+#include <regex>
 
 
 #include "Normalizer.h"
@@ -53,6 +53,10 @@ class Plotter {
   int color[10] = {100, 90, 80, 70, 60, 95, 85, 75, 65, 55};
   bool ssqrtsb = true;
   Bottom bottomType = Ratio;
+
+  map<string, string> latexer = { {"GenTau", "#tau"}, {"GenHadTau", "#tau_h"}, {"GenMuon", "#mu"}, {"TauJet", "#tau"}, {"Muon", "#mu"}, {"DiMuon", "#mu, #mu"}, {"DiTau", "#tau, #tau"}, {"Tau", "#tau"}, {"DiJet", "jj"}, {"Met", "#cancel{E_T}"}};
+
+
 
   void addFile(Normer&);
 
@@ -81,7 +85,8 @@ class Plotter {
   void setBottomType(Bottom);
   void setSignificanceSSqrtB() {ssqrtsb = false;}
 
-
+  string newLabel(string);
+  string listParticles(string);
 };
 
 
