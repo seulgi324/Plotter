@@ -2,6 +2,10 @@
 
 using namespace std;
 
+#define turnLatex(x) ((latexer[x] == "") ? x : latexer[x])
+
+unordered_map<string, string> Plotter::latexer = { {"GenTau", "#tau"}, {"GenHadTau", "#tau_h"}, {"GenMuon", "#mu"}, {"TauJet", "#tau"}, {"Muon", "#mu"}, {"DiMuon", "#mu, #mu"}, {"DiTau", "#tau, #tau"}, {"Tau", "#tau"}, {"DiJet", "jj"}, {"Met", "#slash{E}_{T}"}, {"BJet", "b"}};
+
 template <typename T>
 string to_string_with_precision(const T a_value, const int n = 6);
 
@@ -13,11 +17,13 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
   TList* bglist = FileList[1];
   TList* sglist = FileList[2];
 
+  bool noData = datalist->GetSize() == 0;
+
   if(bglist->GetSize() == 0) {
     cout << "No backgrounds given: Aborting" << endl;
     exit(1);
   }
-  if(datalist->GetSize() == 0) cout << "No Data given: Plotting without Data" << endl;
+  if(noData) cout << "No Data given: Plotting without Data" << endl;
 
   TString path( (char*)strstr( target->GetPath(), ":" ) );
   path.Remove( 0, 2 );
@@ -37,31 +43,17 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
     vector<string> logEff;
     string totalval = "";
     logEff.push_back(current_sourcedir->GetName());
-    logEff.push_back(to_string_with_precision(events->GetBinContent(2), 1));
 
-    TFile *nextsource = (TFile*)datalist->First();
-    while( nextsource) {
-      nextsource->cd(path);
-      gDirectory->GetObject("Events", events);
-      logEff.push_back(to_string_with_precision(events->GetBinContent(2), 1));
-      nextsource = (TFile*)datalist->After( nextsource );
-    }
-
-    nextsource = (TFile*)bglist->First();
-    while ( nextsource ) {
-      nextsource->cd(path);
-      gDirectory->GetObject("Events", events);
-      totalval = to_string_with_precision(events->GetBinContent(2), 1) + "$\\pm$" + to_string_with_precision(events->GetBinError(2), 1);
-      logEff.push_back(totalval);
-      nextsource = (TFile*)bglist->After( nextsource );
-    }
-    nextsource = (TFile*)sglist->First();
-    while ( nextsource ) {
-      nextsource->cd(path);
-      gDirectory->GetObject("Events", events);
-      totalval = to_string_with_precision(events->GetBinContent(2), 1) + "$\\pm$" + to_string_with_precision(events->GetBinError(2), 1);
-      logEff.push_back(totalval);
-     nextsource = (TFile*)sglist->After( nextsource );
+    for(int i=0; i < 3; i++) {
+      TFile* nextsource = (TFile*)FileList[i]->First();
+      while ( nextsource ) {
+	nextsource->cd(path);
+	gDirectory->GetObject("Events", events);
+	totalval = to_string_with_precision(events->GetBinContent(2), 1);
+	if(i != 0) totalval += " $\\pm$ " + to_string_with_precision(events->GetBinError(2), 1);
+	logEff.push_back(totalval);
+	nextsource = (TFile*)FileList[i]->After( nextsource );
+      }
     }
     logfile.addLine(logEff);
     delete events;
@@ -83,123 +75,116 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
     if ( obj->IsA() ==  TH1D::Class() || obj->IsA() ==  TH1F::Class() ) {
       
       TH1 *h1 = (TH1*)obj;
-      TH1D* error = new TH1D("error", "error", h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
-      TH1D* datahist = new TH1D("data", "data", h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
+      TH1D* error = new TH1D("error", h1->GetTitle(), h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
+      TH1D* datahist = new TH1D("data", h1->GetTitle(), h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
       TList* sigHists = new TList();
       THStack *hs = new THStack(h1->GetName(),h1->GetName());
       
       /*------------data--------------*/
 
-      TFile *nextfile = (TFile*)datalist->First();
+      //////hybrid
 
-      while ( nextfile ) {
-	nextfile->cd( path );
-	TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
-	if(key2) {
-	  TH1* h2 = (TH1*)key2->ReadObj();
-	  datahist->Add(h2);
-	  delete h2;
-	}
-	nextfile = (TFile*)datalist->After(nextfile);
-      }
-
-      /*------------background--------------*/
       int nfile = 0;
-      nextfile = (TFile*)bglist->First();
 
-      while ( nextfile ) {
-	nextfile->cd( path );
-	TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
-	if(key2) {
-	  TH1* h2 = (TH1*)key2->ReadObj();
-	  error->Add(h2);
-	  for(int i = 1; i < h2->GetXaxis()->GetNbins()+1; i++) {
-	    h2->SetBinError(i, 0);
+      for(int i = 0; i < 3; i++) {
+	TFile* nextfile = (TFile*)FileList[i]->First();
+	while ( nextfile ) {
+	  nextfile->cd( path );
+	  TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
+	  if(key2) {
+	    TH1* h2 = (TH1*)key2->ReadObj();
+     /*------------Data--------------*/
+	    if(i == 0)  datahist->Add(h2);
+	    else if(i == 1) {
+     /*------------background--------------*/
+	      error->Add(h2);
+	      for(int j = 1; j < h2->GetXaxis()->GetNbins()+1; j++) {
+		h2->SetBinError(j, 0);
+	      }
+	      //////style
+	      string title = nextfile->GetTitle();
+	      title = title.substr(0, title.size()-5);
+	      h2->SetTitle(title.c_str());
+	      h2->SetLineColor(1);
+	      h2->SetFillStyle(1001);
+	      h2->SetFillColor(color[nfile]);
+
+	      hs->Add(h2);
+	      nfile++;
+	    } else if(i == 2) {
+     /*------------Signal--------------*/
+	      for(int j = 1; j < h2->GetXaxis()->GetNbins()+1; j++) {
+		h2->SetBinError(j, 0);
+	      }
+
+	      //////style
+	      string title = nextfile->GetTitle();
+	      title = title.substr(0, title.size()-5);
+	      h2->SetTitle(title.c_str());
+	      h2->SetLineColor(color[nfile]);
+	      h2->SetLineWidth(3);
+	      h2->SetLineStyle(2);
+
+	      sigHists->Add(h2);
+	      nfile++;
+	    }
+	    //	    delete h2;
 	  }
-	  //////style
-	  string title = nextfile->GetTitle();
-	  title = title.substr(0, title.size()-5);
-	  h2->SetTitle(title.c_str());
-	  h2->SetLineColor(1);
-	  h2->SetFillStyle(1001);
-	  h2->SetFillColor(color[nfile]);
-	
-	  hs->Add(h2);
+	  nextfile = (TFile*)FileList[i]->After(nextfile);
 	}
-	nextfile = (TFile*)bglist->After(nextfile);
-	nfile++;
       }
-
-
-      /*------------signal--------------*/
-
-      nextfile = (TFile*)sglist->First();
-
-      while ( nextfile ) {
-	nextfile->cd( path );
-	TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
-	if(key2) {
-	  TH1D* h2 = (TH1D*)key2->ReadObj();
-	  for(int i = 1; i < h2->GetXaxis()->GetNbins()+1; i++) {
-	    h2->SetBinError(i, 0);
-	  }
-
-	  //////style
-	  string title = nextfile->GetTitle();
-	  title = title.substr(0, title.size()-5);
-	  h2->SetTitle(title.c_str());
-	  h2->SetLineColor(color[nfile]);
-	  h2->SetLineWidth(3);
-	  h2->SetLineStyle(2);
-
-	  sigHists->Add(h2);
-
-	}
-	nextfile = (TFile*)sglist->After(nextfile);
-	nfile++;
-      }
-
-
+      
+    
       /*--------------write out------------*/
 
-      ///data
+
       datahist->SetMarkerStyle(20);
       datahist->SetLineColor(1);
 
-      if(hs == NULL || hs->GetNhists() == 0) continue;
       hs = sortStack(hs);
 
       ///rebin
       ////////////decide how to rebin(data, background, both)
       ////check if binning is valid
-      vector<double> bins = rebinner(datahist, styler.getRebinLimit());
+      vector<double> bins;
+      if(noData ) bins = rebinner(error, styler.getRebinLimit());
+      else bins = rebinner(datahist, styler.getRebinLimit());
+
+
+      ////get rid of continue, need things to delete!
       if(bins.size() == 0) continue;
+
+
       double* binner = new double[bins.size()];
       bool passed = true;
       binner[0] = bins.back();
       for(int i = 1; i < bins.size(); i++) {
-	if(bins.at(bins.size() - i) >= bins.at(bins.size() - i - 1))  {
-	  passed = false;
-	  break;
-	}
-	binner[i] = bins.at(bins.size() - i - 1);
+      	if(bins.at(bins.size() - i) >= bins.at(bins.size() - i - 1))  {
+      	  passed = false;
+      	  break;
+      	}
+      	binner[i] = bins.at(bins.size() - i - 1);
       }
+
+
 
       ////rebin histograms
       THStack* hsdraw = hs;
       if(passed && bins.size() > styler.getBinLimit()) {
 	datahist = (TH1D*)datahist->Rebin(bins.size()-1, "data_rebin", binner);
-	error = (TH1D*)error->Rebin(bins.size()-1, "error_rebin", binner);
-	hsdraw = rebinStack(hs, binner, bins.size()-1);	
-	TList* tmplist = new TList();
-	TH1D* onesig = (TH1D*)sigHists->First();
-	while(onesig) {
-	  tmplist->Add(onesig->Rebin(bins.size()-1, onesig->GetName(), binner));
-	  onesig = (TH1D*)sigHists->After(onesig);
-	}
-	delete sigHists;
-	sigHists = tmplist;
+      	error = (TH1D*)error->Rebin(bins.size()-1, "error_rebin", binner);
+      	hsdraw = rebinStack(hs, binner, bins.size()-1);	
+      	TList* tmplist = new TList();
+      	TH1D* onesig = (TH1D*)sigHists->First();
+      	while(onesig) {
+      	  tmplist->Add(onesig->Rebin(bins.size()-1, onesig->GetName(), binner));
+      	  onesig = (TH1D*)sigHists->After(onesig);
+      	}
+      	delete sigHists;
+      	sigHists = tmplist;
       } 
+
+
 
       ///legend stuff
       TLegend* legend = createLeg(datahist, hsdraw->GetHists(), sigHists);
@@ -207,21 +192,28 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       ////divide by binwidth is option is given
       if(styler.getDivideBins()) divideBin(datahist, error, hsdraw); ///add sig stuff as well
       
+
+
       //error
       TGraphErrors* errorstack = createError(error, false);
-
 
       ////draw graph
       target->cd();
 
       TCanvas *c = new TCanvas(h1->GetName(), h1->GetName());//403,50,600,600);
-      c->Divide(1,2);
-      c->cd(1);
-      sizePad(styler.getPadRatio(), gPad, true);
+      // TPaveText* text = new TPaveText(0.05, 0.7, 0.5, 1.);
+      // text->AddText("CMS Preliminary");
+      // text->Draw();
+
+      if(!(noData || onlyTop)) {
+	c->Divide(1,2);
+	c->cd(1);
+	sizePad(styler.getPadRatio(), gPad, true);
+      }
 
       hsdraw->Draw();
       datahist->Draw("same");
-      
+
       TH1D* tmpsig = (TH1D*)sigHists->First();
       while(tmpsig) {
 	tmpsig->Draw("same");
@@ -230,35 +222,42 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       errorstack->Draw("2");
       legend->Draw();
       setYAxisTop(datahist, error, styler.getHeightRatio(), hsdraw);
-
-      // TPaveText* text = new TPaveText(0.05, 0.7, 0.5, 1.);
-      // text->AddText("CMS Preliminary");
-      // text->Draw();
-
-      ///second pad
-      c->cd(2);
-      sizePad(styler.getPadRatio(), gPad, false);
-
-      error->Draw("AXIS");
-      setXAxisBot(error, styler.getPadRatio());
-
-      TList* signalBot = (bottomType != Ratio) ? signalBottom(sigHists, error) : signalBottom(sigHists, datahist, error);
-
-      TF1* PrevFitTMP = new TF1();
-      TGraphErrors* errorratio = createError(error, true);
-      if(bottomType == Ratio) {
-	tmpsig = (TH1D*)signalBot->Last();
-	delete PrevFitTMP;
-	PrevFitTMP = createLine(tmpsig);
-	setYAxisBot(error->GetYaxis(), tmpsig, styler.getPadRatio());
-      } else setYAxisBot(error->GetYaxis(), signalBot, styler.getPadRatio());
-
-      tmpsig = (TH1D*)signalBot->First();
-      while(tmpsig) {
-	tmpsig->Draw("same");
-	tmpsig = (TH1D*)signalBot->After(tmpsig);
+      if(onlyTop || noData) {
+	hsdraw->GetXaxis()->SetTitle(newLabel(hsdraw->GetTitle()).c_str());     
+	hsdraw->GetXaxis()->SetTitleSize(hsdraw->GetYaxis()->GetLabelSize());
       }
-      if(bottomType == Ratio) errorratio->Draw("2");
+
+
+
+      // ///second pad
+      TF1* PrevFitTMP = NULL;
+      TGraphErrors* errorratio = NULL;
+      TList* signalBot = NULL;
+
+      if( !(noData || onlyTop) ) {
+	c->cd(2);
+	sizePad(styler.getPadRatio(), gPad, false);
+
+	TH1* botaxis = error;
+	botaxis->Draw("AXIS");
+	setXAxisBot(botaxis, styler.getPadRatio());
+
+	signalBot = (bottomType != Ratio) ? signalBottom(sigHists, error) : signalBottom(sigHists, datahist, error);
+	
+	errorratio = createError(error, true);
+	if(bottomType == Ratio) {
+	  tmpsig = (TH1D*)signalBot->Last();
+	  PrevFitTMP = createLine(tmpsig);
+	  setYAxisBot(error->GetYaxis(), tmpsig, styler.getPadRatio());
+	} else setYAxisBot(botaxis->GetYaxis(), signalBot, styler.getPadRatio());
+
+	tmpsig = (TH1D*)signalBot->First();
+	while(tmpsig) {
+	  tmpsig->Draw("same");
+	  tmpsig = (TH1D*)signalBot->After(tmpsig);
+	}
+	if(bottomType == Ratio) errorratio->Draw("2");
+      }
 
       c->cd();
       c->Write(c->GetName());
@@ -270,9 +269,13 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       delete sigHists;
       delete legend;
       delete errorstack;
-      delete errorratio;
-      delete PrevFitTMP;
+
       delete[] binner;
+      if( !(noData || onlyTop) ) {
+	delete errorratio;
+	delete PrevFitTMP;
+	signalBot->Delete();
+      }
 
     } else if ( obj->IsA()->InheritsFrom( TDirectory::Class() ) ) {
       target->cd();
@@ -308,28 +311,31 @@ string to_string_with_precision(const T a_value, const int n)
 THStack* Plotter::sortStack(THStack* old) {
   if(old == NULL || old->GetNhists() == 0) return old;
   string name = old->GetName();
-
   THStack* newstack = new THStack(name.c_str(),name.c_str());
 
   TList* list = (TList*)old->GetHists();
 
-  while(list->GetSize() > 0) {
-    TIter next(list);
-    TH1* smallest = NULL;
-    TH1* tmp = NULL;
-    while ( (tmp = (TH1*)next()) ) {
-      if(smallest == NULL || smallest->Integral() > tmp->Integral()) smallest = tmp;
+  while(list->GetSize() > 1) {
+
+    TH1* smallest = (TH1*)list->First();;
+    TH1* tmp = (TH1*)list->After(smallest);
+    while ( tmp ) {
+      if(smallest->Integral() > tmp->Integral()) smallest = tmp;
+      tmp = (TH1*)list->After(tmp);
     }
     newstack->Add(smallest);
     list->Remove(smallest);
-
   }
+  TH1* last = (TH1*)list->First();
+  if(last) newstack->Add(last);
   
   delete old;
   return newstack;
 } 
 
-TLegend* Plotter::createLeg(TH1* data, TList* bgl, TList* sigl) {
+
+////make legend position adjustable
+TLegend* Plotter::createLeg(const TH1* data, const TList* bgl, const TList* sigl) {
   double width = 0.04;
   int items = bgl->GetSize() + sigl->GetSize();
   items += (data->GetEntries() != 0) ? 1 : 0;
@@ -350,7 +356,7 @@ TLegend* Plotter::createLeg(TH1* data, TList* bgl, TList* sigl) {
   return leg;
 }
 
-TGraphErrors* Plotter::createError(TH1* error, bool ratio) {
+TGraphErrors* Plotter::createError(const TH1* error, bool ratio) {
   int Nbins =  error->GetXaxis()->GetNbins();
   Double_t* mcX = new Double_t[Nbins];
   Double_t* mcY = new Double_t[Nbins];
@@ -397,7 +403,7 @@ TF1* Plotter::createLine(TH1* data_mc) {
   return PrevFitTMP;
 }
  
-vector<double> Plotter::rebinner(TH1* hist, double limit) {
+vector<double> Plotter::rebinner(const TH1* hist, double limit) {
   vector<double> bins;
   double toterror = 0.0, prevbin=0.0;
   double limit2 = pow(limit,2);
@@ -408,7 +414,7 @@ vector<double> Plotter::rebinner(TH1* hist, double limit) {
 
   if(hist->GetEntries() == 0 || hist->Integral() <= 0) return bins;
 
-  for(int i = hist->GetXaxis()->GetNbins(); i > 0; i--) {
+   for(int i = hist->GetXaxis()->GetNbins(); i > 0; i--) {
     if(hist->GetBinContent(i) <= 0.0) continue;
     if(!foundfirst) { 
       bins.push_back(hist->GetXaxis()->GetBinUpEdge(i));
@@ -434,50 +440,7 @@ vector<double> Plotter::rebinner(TH1* hist, double limit) {
 }
 
 
-double* Plotter::rebinner(TH1* hist1, TH1* hist2, double limit) {
-  vector<double> bins;
-  double toterror1 = 0.0, prevbin1=0.0;
-  double toterror2 = 0.0, prevbin2=0.0;
-  double limit2 = pow(limit,2);
-  bool foundfirst = false;
-  double end;
-
-  for(int i = hist1->GetXaxis()->GetNbins(); i > 0; i--) {
-    if(hist1->GetBinContent(i) <= 0.0 && hist2->GetBinContent(i) <= 0.0) continue;
-    if(!foundfirst) { 
-      bins.push_back(hist1->GetXaxis()->GetBinUpEdge(i));
-      foundfirst = true;
-    } else end = hist1->GetXaxis()->GetBinLowEdge(i);
-
-    if(toterror1* prevbin1 != 0.) toterror1 *= pow(prevbin1,2)/pow(prevbin1+hist1->GetBinContent(i),2);
-    if(toterror2* prevbin2 != 0.) toterror2 *= pow(prevbin2,2)/pow(prevbin2+hist2->GetBinContent(i),2);
-    prevbin1 += hist1->GetBinContent(i);
-    prevbin2 += hist2->GetBinContent(i);
-    toterror1 += (2 * pow(hist1->GetBinError(i),2))/pow(prevbin1,2);
-    toterror2 += (2 * pow(hist2->GetBinError(i),2))/pow(prevbin2,2);
-    if(toterror1 < limit2 && toterror2 < limit2) {
-      bins.push_back(hist1->GetXaxis()->GetBinLowEdge(i));
-      toterror1 = 0.0;
-      prevbin1 = 0.0;
-      toterror2 = 0.0;
-      prevbin2 = 0.0;
-    }
-  }
-
-  if(bins.back() != end) {
-    bins.push_back(end);
-    if(hist1->GetXaxis()->GetXmin() >= 0) bins.push_back(hist1->GetXaxis()->GetXmin());
-  }
-  
-  double* newbins = new double[bins.size()];
-  for(int i = 0; i < bins.size(); i++) {
-    newbins[i] = bins.at(bins.size() - i - 1);
-  }
-  
-  return newbins;
-}
-
-THStack* Plotter::rebinStack(THStack* hs, double* binner, int total) {
+THStack* Plotter::rebinStack(THStack* hs, const double* binner, int total) {
   THStack* newstack = new THStack(hs->GetName(), hs->GetName());
   TList* list = (TList*)hs->GetHists();
 
@@ -498,15 +461,17 @@ THStack* Plotter::rebinStack(THStack* hs, double* binner, int total) {
 
 void Plotter::setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
   TAxis* yaxis = hs->GetYaxis();
-  //  if(dividebins) yaxis->SetTitle("Events/GeV");////get axis title stuff
+  //   if(dividebins) yaxis->SetTitle("Events/GeV");////get axis title stuff
   yaxis->SetTitle("Events");////Need to sort out units and stuff
-  yaxis->SetLabelSize(hs->GetXaxis()->GetLabelSize());
+  ///  yaxis->SetLabelSize(hs->GetXaxis()->GetLabelSize());
   double max = (error->GetMaximum() > datahist->GetMaximum()) ? error->GetMaximum() : datahist->GetMaximum();
-  hs->SetMaximum(max*(1.0/ratio + 1.0));
+
+   hs->SetMaximum(max*(1.0/ratio + 1.0));
 
 }
 
-TList* Plotter::signalBottom(TList* signal, TH1D* background) {
+
+TList* Plotter::signalBottom(const TList* signal, const TH1D* background) {
   TList* returnList = new TList();
   
   TH1D* holder = (TH1D*)signal->First();
@@ -536,7 +501,7 @@ TList* Plotter::signalBottom(TList* signal, TH1D* background) {
   return returnList;
 }
 
-TList* Plotter::signalBottom(TList* signal, TH1D* data, TH1D* background) {
+TList* Plotter::signalBottom(const TList* signal, const TH1D* data, const TH1D* background) {
   TList* returnList = new TList();
   
   TH1D* holder = (TH1D*)signal->First();
@@ -562,8 +527,10 @@ TList* Plotter::signalBottom(TList* signal, TH1D* data, TH1D* background) {
 
 void Plotter::setXAxisBot(TH1* data_mc, double ratio) {
   TAxis* xaxis = data_mc->GetXaxis();
+  xaxis->SetTitle(newLabel(data_mc->GetTitle()).c_str());
   xaxis->SetLabelSize(xaxis->GetLabelSize()*ratio);
 }
+
 
 void Plotter::setYAxisBot(TAxis* yaxis, TH1* data_mc, double ratio) {
   double divmin = 0.0, divmax = 2.99;
@@ -700,7 +667,6 @@ void Plotter::addFile(Normer& norm) {
 
   normedFile->SetTitle(norm.output.c_str());
   
-  
   if(norm.type == "data") FileList[0]->Add(normedFile);
   else if(norm.type == "bg") FileList[1]->Add(normedFile);
   else if(norm.type == "sig") FileList[2]->Add(normedFile);
@@ -709,42 +675,35 @@ void Plotter::addFile(Normer& norm) {
 }
 
 
-void Plotter::setBottomType(Bottom input) {
-  bottomType = input;
-}
-
-
-
 string Plotter::newLabel(string stringkey) {
-
-  string particle;
+  string particle = "";
 
   smatch m;
   regex part ("(Di)?(Tau(Jet)?|Muon|Electron|Jet)");
 
-  regex e ("^(.+?)(1|2)?Energy.+");
-  regex n ("^N([^12[:space:]]+).*$");
-  regex charge ("^(.+?)(1|2)?Charge.*");
-  regex mass ("(.+?)(Not)?Mass.*");
-  regex zeta ("(.+?)(P)?Zeta(1D|Vis)?.*");
-  regex deltar ("(.+?)DeltaR.*");
-  regex MetMt ("^(([^_]*?)(1|2)|[^_]+_(.+?)(1|2))MetMt.*");
-  regex eta ("^(.+?)(Delta)?(Eta).*");
-  regex phi ("^(([^_]*?)|[^_]+_(.+?))(Delta)?(Phi).+");
+  regex e ("^(.+?)(1|2)?Energy$");
+  regex n ("^N(.+)$");
+  regex charge ("^(.+?)(1|2)?Charge");
+  regex mass ("(.+?)(Not)?Mass");
+  regex zeta ("(.+?)(P)?Zeta(1D|Vis)?");
+  regex deltar ("(.+?)DeltaR");
+  regex MetMt ("^(([^_]*?)(1|2)|[^_]+_(.+?)(1|2))MetMt$");
+  regex eta ("^(.+?)(Delta)?(Eta)");
+  regex phi ("^(([^_]*?)|[^_]+_(.+?))(Delta)?(Phi)");
   regex cosdphi ("(.+?)(CosDphi)(.*)");
-  regex pt ("^(.+?)(Delta)?(Pt)(Div)?.*");
-  regex osls ("^(.+?)OSLS.*");
-  regex zdecay ("^[^_]_(.+?)IsZdecay.*");
+  regex pt ("^(.+?)(Delta)?(Pt)(Div)?.*$");
+  regex osls ("^(.+?)OSLS");
+  regex zdecay ("^[^_]_(.+)IsZdecay$");
 
-    
+
   if(regex_match(stringkey, m, e)) {
-    return "E(" + ((latexer[m[1].str()] == "") ? m[1].str() : latexer[m[1].str()]) + ") [GeV]";
+    return "E(" + turnLatex(m[1].str()) + ") [GeV]";
   }
   else if(regex_match(stringkey, m, n)) {
-    return "N(" + ((latexer[m[1].str()] == "") ? m[1].str() : latexer[m[1].str()]) + ")";
+    return "N(" + turnLatex(m[1].str()) + ")";
   }
   else if(regex_match(stringkey, m, charge)) {
-    return "charge(" + ((latexer[m[1].str()] == "") ? m[1].str() : latexer[m[1].str()]) + ") [e]";
+    return  "charge(" + turnLatex(m[1].str())+ ") [e]";
   }
   else if(regex_match(stringkey, m, mass)) {
     return ((m[2].str() == "Not") ? "Not Reconstructed M(": "M(") + listParticles(m[1].str()) + ") [GeV]";
@@ -756,40 +715,46 @@ string Plotter::newLabel(string stringkey) {
     return "#DeltaR("+ listParticles(m[1].str()) + ")";
   }
   else if(regex_match(stringkey, m, MetMt)) {
-    // return "M_t(" + ((latexer[m[2].str() + m[4].str()] == "") ? m[2].str() + m[4].str() : latexer[m[2].str() + m[4].str();]) + ")";
+    return "M_t(" + turnLatex(m[2].str()+m[4].str()) + ") [GeV]";
   }
   else if(regex_match(stringkey, m, eta))  {
-    // return ((m[2].str() != "") ? "#Delta" : "") + "#eta(" + listParticles(m[1].str()) + ")";
+    particle += (m[2].str() != "") ? "#Delta" : "";
+    particle += "#eta(" + listParticles(m[1].str()) + ")";
+    return particle;
   }
   else if(regex_match(stringkey, m, phi))  {
-    if(m[4].str() != "") cout << "#Delta";
-    cout << "#phi(" << listParticles(m[2].str()+m[3].str()) << ")" << endl;
+    if(m[4].str() != "") particle = "#Delta";
+    particle += "#phi(" + listParticles(m[2].str()+m[3].str()) + ")";
+    return particle;
   }
   else if(regex_match(stringkey, m, cosdphi)) {
     return "cos(#Delta#phi(" + listParticles(m[1].str()) + "))";
   }
-  // else if(regex_match(stringkey, m, pt)) {
-  //   if(m[4].str() != "") cout << "#frac{#Deltap_T}{#Sigmap_T}(";
-  //   else if(m[2] != "") cout << "#Deltap_T(";
-  //   else cout << "p_T(";
-  //   cout << listParticles(m[1].str()) + ") [GeV]";
-   // } 
-  else if(stringkey.find("Met") != string::npos) return "#cancel{E_T} [GeV]";
-  else if(stringkey.find("MHT") != string::npos) return "#cancel{H_T} [GeV]";
-  else if(stringkey.find("HT") != string::npos) return "H_T [GeV]";
-  else if(stringkey.find("Meff") != string::npos) return "M_eff [GeV]";
+  else if(regex_match(stringkey, m, pt)) {
+    if(m[4].str() != "") particle += "#frac{#Delta p_{T}}{#Sigma p_{T}}(";
+    else if(m[2] != "") particle += "#Delta p_{T}(";
+    else particle += "p_{T}(";
+    particle += listParticles(m[1].str()) + ") [GeV]";
+    return particle;
+  } 
+  else if(stringkey.find("Met") != string::npos) return "#slash{E}_{T} [GeV]";
+  else if(stringkey.find("MHT") != string::npos) return "#slash{H}_{T} [GeV]";
+  else if(stringkey.find("HT") != string::npos) return "H_{T} [GeV]";
+  else if(stringkey.find("Meff") != string::npos) return "M_{eff} [GeV]";
   else if(regex_match(stringkey, m, osls)) {
     particle = m[1].str();
+    string full = "";
     while(regex_search(particle, m, part)) {
-      cout << "q_{" + ((latexer[m[0]] == "") ? m[0] : latexer[m[0]]) << "}";
+      full += "q_{" + turnLatex(m[0].str()) + "} ";
       particle = m.suffix().str();
     }
-    cout << endl;
+    return full;
   } else if(regex_match(stringkey, m, zdecay)) {
     return listParticles(m[1].str()) + "is Z Decay";
   }
-  else return stringkey;
-  return "";
+  cout << stringkey << "|" << endl;
+  return stringkey;
+
 }
 
 
@@ -802,8 +767,10 @@ string Plotter::listParticles(string toParse) {
   while(regex_search(toParse,m,part)) {
     if(first) first = false;
     else final += ", ";
-    final += ((latexer[m[0]] == "") ? m[0] : latexer[m[0]]);
+    final += turnLatex(m[0].str());
     toParse = m.suffix().str();
   }
   return final;
 }
+
+

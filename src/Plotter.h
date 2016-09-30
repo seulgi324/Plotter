@@ -23,7 +23,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <map>
+#include <unordered_map>
 #include "tokenizer.hpp"
 #include <fstream>
 #include <stdio.h>
@@ -51,23 +51,24 @@ class Plotter {
   TList* FileList[3] = {new TList(), new TList(), new TList()};
   Style styler;
   int color[10] = {100, 90, 80, 70, 60, 95, 85, 75, 65, 55};
-  bool ssqrtsb = true;
+  
+  bool ssqrtsb = true, onlyTop = false;
   Bottom bottomType = Ratio;
 
-  map<string, string> latexer = { {"GenTau", "#tau"}, {"GenHadTau", "#tau_h"}, {"GenMuon", "#mu"}, {"TauJet", "#tau"}, {"Muon", "#mu"}, {"DiMuon", "#mu, #mu"}, {"DiTau", "#tau, #tau"}, {"Tau", "#tau"}, {"DiJet", "jj"}, {"Met", "#cancel{E_T}"}};
-
-
+  void makeLatexer();
+  bool mademap = false;
+  static unordered_map<string, string> latexer;
 
   void addFile(Normer&);
 
   TH1D* printBottom(TH1D*, TH1D*);
-  TList* signalBottom(TList*, TH1D*);
-  TList* signalBottom(TList*, TH1D*, TH1D*);
+  TList* signalBottom(const TList*, const TH1D*);
+  TList* signalBottom(const TList*, const TH1D*, const TH1D*);
 
   void CreateStack( TDirectory*, Logfile&); ///fix plot stuff
   THStack* sortStack(THStack*);
-  TLegend* createLeg(TH1*, TList* bgl, TList* sigl);
-  TGraphErrors* createError(TH1*, bool);
+  TLegend* createLeg(const TH1*, const TList*, const TList*);
+  TGraphErrors* createError(const TH1*, bool);
   void sizePad(double, TVirtualPad*, bool);
   TF1* createLine(TH1*);
   void setXAxisTop(TH1*, TH1*, THStack*);
@@ -75,22 +76,19 @@ class Plotter {
   void setXAxisBot(TH1*, double);
   void setYAxisBot(TAxis*, TH1*, double);
   void setYAxisBot(TAxis*, TList*, double);
-  vector<double> rebinner(TH1*, double);
-  double* rebinner(TH1*, TH1*, double);
-  THStack* rebinStack(THStack*, double*, int);
+  vector<double> rebinner(const TH1*, double);
+  //  double* rebinner(TH1*, TH1*, double);
+  THStack* rebinStack(THStack*, const double*, int);
   void divideBin(TH1*, TH1*,THStack*);
   int getSize();
   vector<string> getFilenames(string option="all");
   void setStyle(Style&);
-  void setBottomType(Bottom);
+  void setBottomType(Bottom input) {bottomType = input;}
   void setSignificanceSSqrtB() {ssqrtsb = false;}
+  void setNoBottom() {onlyTop = true;}
 
   string newLabel(string);
   string listParticles(string);
 };
-
-
-
-
 
 #endif
