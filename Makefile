@@ -14,10 +14,10 @@ ROOTLIBS = $(shell root-config --libs) -O2
 
 # Linux with egcs
 
-CXX = g++
+CXX = g++ -std=c++11
 CXXFLAGS += $(ROOTCFLAGS) -I./ -g
 
-LD = g++
+LD = g++ -std=c++11
 LDFLAGS += $(ROOTLIBS) -g
 
 SOFLAGS = -shared

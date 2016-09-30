@@ -1,3 +1,6 @@
+#ifndef _STYLE_H_
+#define _STYLE_H_
+
 #include <TTree.h>
 #include <TH1.h>
 #include <TFile.h>
@@ -57,3 +60,4 @@ class Style {
   bool dividebins = false;
 };
 
+#endif

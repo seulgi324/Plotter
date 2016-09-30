@@ -1,4 +1,4 @@
-PadRatio   3
+PadRatio    3
 TopWSRatio  15  
 RebinLimit  0.3
 DivideBins  0
@@ -27,8 +27,8 @@ CanvasBorderSize 3
 FuncColor  19
 FuncStyle   0
 
-PadBottomMargin 0.07
-PadTopMargin 0.08
+PadBottomMargin 0.1
+PadTopMargin 0.05
 PadLeftMargin 0.08
 PadRightMargin 0.05
 PadGridX 0

@@ -6,6 +6,17 @@ Normer::Normer() {
   
 }
 
+Normer::Normer(vector<string> values) {
+  setValues(values);
+  output = values[1];
+  if(values.size() == 2) {
+     isData = true;
+     type = "data";
+  } else if(values.size() == 5) type = values[4];
+
+}
+
+
 Normer::Normer(const Normer& other) {
   input = other.input;
   skim = other.skim;
@@ -41,6 +52,43 @@ Normer::~Normer() {
   }
 }
 
+void Normer::setValues(vector<string> values) {
+  input.push_back(values[0]);
+  use = min(shouldAdd(values[0], values[1]),use);
+  CumulativeEfficiency.push_back(1.);
+  scaleFactor.push_back(1.);
+  scaleFactorError.push_back(0.);
+  integral.push_back(0);
+  if(values.size() == 2) {
+    xsec.push_back(1.0);
+    skim.push_back(1.0);
+  } else {
+     xsec.push_back(stod(values[2]));
+     skim.push_back(stod(values[3]));
+  }
+}
+
+int Normer::shouldAdd(string infile, string globalFile) {
+  struct stat buffer;
+  if(stat(infile.c_str(), &buffer) != 0) return 0;
+  else if(stat(globalFile.c_str(), &buffer) != 0) return 1;
+  else if(getModTime(globalFile.c_str()) > getModTime(infile.c_str())) return 2;
+  else return 1;
+
+}
+
+void Normer::setLumi(double lumi) {
+  this->lumi = lumi;
+}
+
+int Normer::getModTime(const char *path) {
+  struct stat attr;
+  stat(path, &attr);
+  char date[100] = {0};
+  strftime(date, 100, "%s", localtime(&attr.st_mtime));
+  return atoi(date);
+
+}
 
 
 
