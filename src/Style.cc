@@ -16,6 +16,13 @@ Style::Style(string infile) {
 Style::Style(const Style& old) {
   styler = (TStyle*)old.styler->Clone();
   values = old.values;
+  values = old.values;
+  binlimit = old.binlimit;
+  padratio = old.padratio;
+  heightratio = old.heightratio;
+  rebinlimit = old.rebinlimit;
+  dividebins = old.dividebins;
+
 }
 
 Style& Style::operator=(const Style& rhs) {
@@ -24,6 +31,12 @@ Style& Style::operator=(const Style& rhs) {
   if(!styler) delete styler;
   styler = (TStyle*)rhs.styler->Clone();
   values = rhs.values;
+  binlimit = rhs.binlimit;
+  padratio = rhs.padratio;
+  heightratio = rhs.heightratio;
+  rebinlimit = rhs.rebinlimit;
+  dividebins = rhs.dividebins;
+
   return *this;
 }
 
@@ -187,18 +200,10 @@ void Style::setStyle() {
     else if(it->first == "PadRatio") padratio = it->second;
     else if(it->first == "TopWSRatio") heightratio = it->second;
     else if(it->first == "RebinLimit") rebinlimit = it->second;
-    else if(it->first == "DivideBins") dividebins = it->second;
+    else if(it->first == "DivideBins") dividebins = ((int)it->second != 0);
     else if(it->first == "BinLimit") binlimit = it->second;
   }
 
   gStyle = styler;
 }
 
-string getUnit(string title) {
-  string baseUnit, particle;
-
-
-  if(title.find("Eta") != string::npos) {
-
-  }
-}

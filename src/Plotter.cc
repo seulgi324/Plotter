@@ -190,10 +190,8 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       TLegend* legend = createLeg(datahist, hsdraw->GetHists(), sigHists);
       
       ////divide by binwidth is option is given
-      if(styler.getDivideBins()) divideBin(datahist, error, hsdraw); ///add sig stuff as well
+      if(styler.getDivideBins()) divideBin(datahist, error, hsdraw, sigHists); ///add sig stuff as well
       
-
-
       //error
       TGraphErrors* errorstack = createError(error, false);
 
@@ -461,8 +459,8 @@ THStack* Plotter::rebinStack(THStack* hs, const double* binner, int total) {
 
 void Plotter::setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
   TAxis* yaxis = hs->GetYaxis();
-  //   if(dividebins) yaxis->SetTitle("Events/GeV");////get axis title stuff
-  yaxis->SetTitle("Events");////Need to sort out units and stuff
+  if(styler.getDivideBins()) yaxis->SetTitle("Events/GeV");////get axis title stuff
+  else yaxis->SetTitle("Events");
   ///  yaxis->SetLabelSize(hs->GetXaxis()->GetLabelSize());
   double max = (error->GetMaximum() > datahist->GetMaximum()) ? error->GetMaximum() : datahist->GetMaximum();
 
@@ -573,7 +571,8 @@ void Plotter::setYAxisBot(TAxis* yaxis, TList* signal, double ratio) {
 }
 
 
-void Plotter::divideBin(TH1* data, TH1* error, THStack* hs) {
+void Plotter::divideBin(TH1* data, TH1* error, THStack* hs, TList* signal) {
+
   for(int i = 0; i < data->GetXaxis()->GetNbins(); i++) {
     data->SetBinContent(i+1, data->GetBinContent(i+1)/data->GetBinWidth(i+1));
     data->SetBinError(i+1, data->GetBinError(i+1)/data->GetBinWidth(i+1));
@@ -592,6 +591,14 @@ void Plotter::divideBin(TH1* data, TH1* error, THStack* hs) {
       tmp->SetBinContent(i+1,tmp->GetBinContent(i+1)/tmp->GetBinWidth(i+1));
       tmp->SetBinError(i+1,tmp->GetBinError(i+1)/tmp->GetBinWidth(i+1));
     }
+  }
+  tmp = (TH1*)signal->First();
+  while(tmp) {
+    for(int i = 0; i < tmp->GetXaxis()->GetNbins(); i++) {
+      tmp->SetBinContent(i+1,tmp->GetBinContent(i+1)/tmp->GetBinWidth(i+1));
+      tmp->SetBinError(i+1,tmp->GetBinError(i+1)/tmp->GetBinWidth(i+1));
+    }
+    tmp = (TH1*)signal->After(tmp);
   }
    
 }

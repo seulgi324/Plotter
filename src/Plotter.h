@@ -55,8 +55,6 @@ class Plotter {
   bool ssqrtsb = true, onlyTop = false;
   Bottom bottomType = Ratio;
 
-  void makeLatexer();
-  bool mademap = false;
   static unordered_map<string, string> latexer;
 
   void addFile(Normer&);
@@ -77,9 +75,9 @@ class Plotter {
   void setYAxisBot(TAxis*, TH1*, double);
   void setYAxisBot(TAxis*, TList*, double);
   vector<double> rebinner(const TH1*, double);
-  //  double* rebinner(TH1*, TH1*, double);
+
   THStack* rebinStack(THStack*, const double*, int);
-  void divideBin(TH1*, TH1*,THStack*);
+  void divideBin(TH1*, TH1*,THStack*, TList*);
   int getSize();
   vector<string> getFilenames(string option="all");
   void setStyle(Style&);

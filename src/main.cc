@@ -42,11 +42,15 @@ int main(int argc, char* argv[]) {
         cout << "                  s/sqrt(s + b)" << endl;
 	cout << "                  This option changes the significance calculation to be:" << endl;
 	cout << "                  s/sqrt(b)" << endl;
+	cout << "    -onlytop      Don't make bottom plot (either significance or ratio plots" << endl;
+        cout << "                  Will only print top if no data is given (nothing to compare to" << endl;
+
 	exit(0);
       } else if( strcmp(argv[i], "-sigleft") == 0) fullPlot.setBottomType(SigLeft);
       else if( strcmp(argv[i], "-sigright") == 0) fullPlot.setBottomType(SigRight);
       else if( strcmp(argv[i],"-sigbin") == 0) fullPlot.setBottomType(SigBin);
-      else if( strcmp(argv[i],"-ssqrtb") == 0) ssqrtsb = false;
+      else if( strcmp(argv[i],"-ssqrtb") == 0) fullPlot.setSignificanceSSqrtB();
+      else if( strcmp(argv[i],"-onlytop") == 0) fullPlot.setNoBottom();
       else {
 	cout << "wrong option, exiting" << endl;
 	exit(0);
@@ -64,10 +68,6 @@ int main(int argc, char* argv[]) {
   }
 
   cout << "Finished Normalization" << endl;
-  // if(datan.size() ==  0 || fullPlot.FileList[0]->GetSize() == 0) {
-  //   cout << "No Data given: exiting" << endl;
-  //   exit(1);
-  // }
 
   TFile* final = new TFile(output.c_str(), "RECREATE");
   Logfile logfile;
