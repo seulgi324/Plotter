@@ -52,6 +52,9 @@ Normer::~Normer() {
   }
 }
 
+
+/// Set values given by the vector.  Used to declutter
+/// the adding of files when read in from the config file
 void Normer::setValues(vector<string> values) {
   input.push_back(values[0]);
   use = min(shouldAdd(values[0], values[1]),use);
@@ -68,6 +71,18 @@ void Normer::setValues(vector<string> values) {
   }
 }
 
+//// Has several return cases
+//// 2: output file already exists and is as new as the input files
+////    meaning remaking it is a waste of time
+//// 1: Output file doesn't exist, so will make it OR the input file
+////    is newer than the output file (needs to be remade)
+//// 0: Input file doesn't exist, there is an error!
+
+///// Once done for all files that need to added together, take the minimum
+/// of this number to find out if the file needs to be made, namely, if one
+/// value is 0, theres an error and abort.  If one file is newer than the 
+/// output file (1), readd them.  If all are older than the output file, no need
+/// to remake it (all 2)
 int Normer::shouldAdd(string infile, string globalFile) {
   struct stat buffer;
   if(stat(infile.c_str(), &buffer) != 0) return 0;
@@ -81,6 +96,8 @@ void Normer::setLumi(double lumi) {
   this->lumi = lumi;
 }
 
+
+//// Helper function for shouldAdd (finds mod time of file)
 int Normer::getModTime(const char *path) {
   struct stat attr;
   stat(path, &attr);
@@ -91,7 +108,7 @@ int Normer::getModTime(const char *path) {
 }
 
 
-
+//// prints out info about input files
 void Normer::print() {
   cout << " =========== " << output << " =========== " << endl;
   for(int i = 0; i < input.size(); ++i) {
@@ -102,7 +119,8 @@ void Normer::print() {
 
 
 
-
+///// Ripped hadd function.  Adds all the histograms together 
+/// while normalizing them
 void Normer::MergeRootfile( TDirectory *target) {
 
   TList* sourcelist = FileList;

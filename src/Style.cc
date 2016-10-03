@@ -45,7 +45,9 @@ Style::~Style() {
 }
 
 
-
+/////// Long function for all the different styles things that can be done
+///// most are unnecessary, but kept just in case.  All values are read in as
+/// doubles, so if the value is a bool, need either 0 or 1, not true false
 void Style::read_info(string filename) {
   typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
   ifstream info_file(filename);
@@ -76,11 +78,13 @@ void Style::read_info(string filename) {
 
 }
 
+
 TStyle* Style::getStyle() {
   return styler;
 }
 
 
+///// actual function that sets the values in the style object
 void Style::setStyle() {
   for(map<string,double>::const_iterator it = values.begin(); it != values.end(); ++it) {
 

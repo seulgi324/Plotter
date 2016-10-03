@@ -1,3 +1,15 @@
+//////////////////////////////////////
+////////// NORMALIZER CLASS //////////
+//////////////////////////////////////
+
+/*
+
+Almost totally ripped from the hadd function.  Just adds the 
+normalization functionality.  Uses same format for the Plotter, but
+not as ripped off.
+
+ */
+
 #ifndef _NORMALIZER_H_
 #define _NORMALIZER_H_
 

@@ -1,3 +1,24 @@
+/////////////////////////////////
+//////// PLOTTER CLASS //////////
+/////////////////////////////////
+
+/*
+
+Beef of the Plotter code; this takes in all of the 
+normalized histograms, puts them into a canvas and formats 
+them all together to look nice.  Most of the functions are for
+aesthetics, so to change the look of the graphs, change the Plotter
+Functions.  Is a little cumbersome and could use more work into 
+putting more ability into the style config files/options.
+
+Current state is still work in progress, but does make nice graphs
+right now.  may need to revisit when submitting paper and comments
+about the graph are more important.
+
+ */
+
+
+
 #ifndef _PLOTTER_H_
 #define _PLOTTER_H_
 
@@ -48,36 +69,9 @@ using namespace std;
 
 class Plotter {
  public:
-  TList* FileList[3] = {new TList(), new TList(), new TList()};
-  Style styler;
-  int color[10] = {100, 90, 80, 70, 60, 95, 85, 75, 65, 55};
-  
-  bool ssqrtsb = true, onlyTop = false;
-  Bottom bottomType = Ratio;
-
-  static unordered_map<string, string> latexer;
-
+  void CreateStack( TDirectory*, Logfile&); ///fix plot stuff
   void addFile(Normer&);
 
-  TH1D* printBottom(TH1D*, TH1D*);
-  TList* signalBottom(const TList*, const TH1D*);
-  TList* signalBottom(const TList*, const TH1D*, const TH1D*);
-
-  void CreateStack( TDirectory*, Logfile&); ///fix plot stuff
-  THStack* sortStack(THStack*);
-  TLegend* createLeg(const TH1*, const TList*, const TList*);
-  TGraphErrors* createError(const TH1*, bool);
-  void sizePad(double, TVirtualPad*, bool);
-  TF1* createLine(TH1*);
-  void setXAxisTop(TH1*, TH1*, THStack*);
-  void setYAxisTop(TH1*, TH1*, double, THStack*);
-  void setXAxisBot(TH1*, double);
-  void setYAxisBot(TAxis*, TH1*, double);
-  void setYAxisBot(TAxis*, TList*, double);
-  vector<double> rebinner(const TH1*, double);
-
-  THStack* rebinStack(THStack*, const double*, int);
-  void divideBin(TH1*, TH1*,THStack*, TList*);
   int getSize();
   vector<string> getFilenames(string option="all");
   void setStyle(Style&);
@@ -85,8 +79,37 @@ class Plotter {
   void setSignificanceSSqrtB() {ssqrtsb = false;}
   void setNoBottom() {onlyTop = true;}
 
+ private:
+  TList* FileList[3] = {new TList(), new TList(), new TList()};
+  Style styler;
+  int color[10] = {100, 90, 80, 70, 60, 95, 85, 75, 65, 55};
+  
+  bool ssqrtsb = true, onlyTop = false;
+  Bottom bottomType = Ratio;
+  static unordered_map<string, string> latexer;
+
   string newLabel(string);
   string listParticles(string);
+  void setXAxisTop(TH1*, TH1*, THStack*);
+  void setYAxisTop(TH1*, TH1*, double, THStack*);
+  void setXAxisBot(TH1*, double);
+  void setYAxisBot(TAxis*, TH1*, double);
+  void setYAxisBot(TAxis*, TList*, double);
+
+  TH1D* printBottom(TH1D*, TH1D*);
+  TList* signalBottom(const TList*, const TH1D*);
+  TList* signalBottom(const TList*, const TH1D*, const TH1D*);
+
+  THStack* sortStack(THStack*);
+  TLegend* createLeg(const TH1*, const TList*, const TList*);
+  TGraphErrors* createError(const TH1*, bool);
+  void sizePad(double, TVirtualPad*, bool);
+  TF1* createLine(TH1*);
+
+  vector<double> rebinner(const TH1*, double);
+
+  THStack* rebinStack(THStack*, const double*, int);
+  void divideBin(TH1*, TH1*,THStack*, TList*);
 };
 
 #endif

@@ -2,6 +2,7 @@
 
 using namespace std;
 
+//// set up header for writing table.  Input plotnames in vector
 void Logfile::setHeader(vector<string> plotnames) {
 
   int totalfiles = plotnames.size();
@@ -18,15 +19,17 @@ void Logfile::setHeader(vector<string> plotnames) {
   logfile << "\\\\ \\hline" << endl;
 }
 
+//// write actual cutflow.  Takes values and puts a & between each value
 void Logfile::addLine(vector<string> values) {
   vector<string>::iterator it = values.begin();
   logfile << *it;
-  for(; it != values.end(); it++) {
+  for(++it; it != values.end(); it++) {
     logfile << " & " << *it;
   }
   logfile << " \\\\ \\hline" << endl;
 }
 
+//// end table
 void Logfile::setTrailer() {
   logfile << "\\end{tabular}" << endl;
 }

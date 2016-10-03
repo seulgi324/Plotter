@@ -2,27 +2,35 @@
 
 using namespace std;
 
+///// macro to save space.  Tests if name is in latex map, if not, it just uses the name given
 #define turnLatex(x) ((latexer[x] == "") ? x : latexer[x])
 
+/////map of latex names.  If want to change how things look, change particle names here
 unordered_map<string, string> Plotter::latexer = { {"GenTau", "#tau"}, {"GenHadTau", "#tau_h"}, {"GenMuon", "#mu"}, {"TauJet", "#tau"}, {"Muon", "#mu"}, {"DiMuon", "#mu, #mu"}, {"DiTau", "#tau, #tau"}, {"Tau", "#tau"}, {"DiJet", "jj"}, {"Met", "#slash{E}_{T}"}, {"BJet", "b"}};
 
 template <typename T>
 string to_string_with_precision(const T a_value, const int n = 6);
 
+/// Main function.  Takes TDirectory with the file you are writing to.  Also takes in logfile
+//  Gets all of the graphs from files in the plotter class and puts them in one graph.
 void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 
+  //// Sets up style here.  Does everytime, just in case.  Probably don't need
   gStyle = styler.getStyle();
 
+  /// Naming to make easier to read.  Aren't actually used much, but just in case for future use
   TList* datalist = FileList[0];
   TList* bglist = FileList[1];
   TList* sglist = FileList[2];
 
   bool noData = datalist->GetSize() == 0;
 
+  //// Require Backgrounds to run
   if(bglist->GetSize() == 0) {
     cout << "No backgrounds given: Aborting" << endl;
     exit(1);
   }
+  //// Will run without data, just will remove ratio plot
   if(noData) cout << "No Data given: Plotting without Data" << endl;
 
   TString path( (char*)strstr( target->GetPath(), ":" ) );
@@ -35,7 +43,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
   TH1::AddDirectory(kFALSE);
 
 
-  ///try to find events to calculate efficiency
+  //// Loop to write cutflow to logfile
   TH1* events;
   current_sourcedir->GetObject("Events", events);
 
@@ -69,11 +77,11 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
     //keep only the highest cycle number for each key
     if (oldkey && !strcmp(oldkey->GetName(),key->GetName())) continue;
 
-    //   firstFile->cd( path );
-
     TObject *obj = key->ReadObj();
     if ( obj->IsA() ==  TH1D::Class() || obj->IsA() ==  TH1F::Class() ) {
       
+      /// h1 is the reference histogram to grab the other histos.
+      /// here we also make the containers for the graphs
       TH1 *h1 = (TH1*)obj;
       TH1D* error = new TH1D("error", h1->GetTitle(), h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
       TH1D* datahist = new TH1D("data", h1->GetTitle(), h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
@@ -82,7 +90,12 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       
       /*------------data--------------*/
 
-      //////hybrid
+      //////  This iterates over all the different files in the 
+      //// FileList array.  Looks a little dirty, but makes the code compact and 
+      //// not messy.  If statements based on array position (ie which type of file)
+      //// tell were to put the histograms.  If adding things, go to respective 
+      //// if statement.  Want to make styling more robust here, but will take some
+      //// annoying configuration stuff.  Maybe later
 
       int nfile = 0;
 
@@ -128,33 +141,41 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 	      sigHists->Add(h2);
 	      nfile++;
 	    }
-	    //	    delete h2;
 	  }
 	  nextfile = (TFile*)FileList[i]->After(nextfile);
 	}
       }
       
-    
       /*--------------write out------------*/
-
 
       datahist->SetMarkerStyle(20);
       datahist->SetLineColor(1);
 
+      /// sort based on integral.  Change this function is want other order
       hs = sortStack(hs);
 
       ///rebin
-      ////////////decide how to rebin(data, background, both)
-      ////check if binning is valid
+      /// default rebinning based on data error.  If no data, bin 
+      /// based on background error
       vector<double> bins;
       if(noData ) bins = rebinner(error, styler.getRebinLimit());
       else bins = rebinner(datahist, styler.getRebinLimit());
 
 
-      ////get rid of continue, need things to delete!
-      if(bins.size() == 0) continue;
+      //// need to get rid of continue if possible because dirty deleting 
+      /// happening here.  Maybe put CreateStack in main and make the class
+      /// the stuff that happens in the loop?  Then just make a destructor.
+      /// that would be pretty.  huh
+      if(bins.size() == 0) {
+	hs->Delete();
+	delete datahist;
+	delete error;
+	delete sigHists;
+	continue;
+      }
 
-
+      /// Check if rebin vector is in decending order (sometimes didn't happen??)
+      /// then puts into a double array in increasing order for Rebin function
       double* binner = new double[bins.size()];
       bool passed = true;
       binner[0] = bins.back();
@@ -169,6 +190,9 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 
 
       ////rebin histograms
+      /// make new stack because hs gets deleted in teh rebinstack function.  Maybe 
+      /// this isn't necessary.  A little jaring to make the change.  Also, I've put
+      /// hs instead of hsdraw so many times...
       THStack* hsdraw = hs;
       if(passed && bins.size() > styler.getBinLimit()) {
 	datahist = (TH1D*)datahist->Rebin(bins.size()-1, "data_rebin", binner);
@@ -190,15 +214,16 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       TLegend* legend = createLeg(datahist, hsdraw->GetHists(), sigHists);
       
       ////divide by binwidth is option is given
-      if(styler.getDivideBins()) divideBin(datahist, error, hsdraw, sigHists); ///add sig stuff as well
+      if(styler.getDivideBins()) divideBin(datahist, error, hsdraw, sigHists);
       
-      //error
+      //error for top
       TGraphErrors* errorstack = createError(error, false);
 
       ////draw graph
       target->cd();
 
       TCanvas *c = new TCanvas(h1->GetName(), h1->GetName());//403,50,600,600);
+      //// need to work on top text
       // TPaveText* text = new TPaveText(0.05, 0.7, 0.5, 1.);
       // text->AddText("CMS Preliminary");
       // text->Draw();
@@ -261,6 +286,10 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       c->Write(c->GetName());
       c->Close();
       
+      /// so many delete.  Probably not doing this right, but this program is so small
+      /// memory leaks basically don't matter.  
+      /// delete vs Delete() still up in the air.  delete doesn't delete objects in container
+      /// while Delete() does, but this only is true sometimes.  idk
       hsdraw->Delete();
       delete datahist;
       delete error;
@@ -305,7 +334,9 @@ string to_string_with_precision(const T a_value, const int n)
 
 
 
-
+///// Function takes an old THStack and sorts the stack based on 
+//// integral of the graph, smallest to largest.  
+/// deletes old stack so pointer nonsense doesn't happen
 THStack* Plotter::sortStack(THStack* old) {
   if(old == NULL || old->GetNhists() == 0) return old;
   string name = old->GetName();
@@ -333,6 +364,8 @@ THStack* Plotter::sortStack(THStack* old) {
 
 
 ////make legend position adjustable
+//// Puts all of the histograms in the legend.  Set so backgrounds show up
+/// as colored blocks, but signal and data as T's in the format they are on the graph
 TLegend* Plotter::createLeg(const TH1* data, const TList* bgl, const TList* sigl) {
   double width = 0.04;
   int items = bgl->GetSize() + sigl->GetSize();
@@ -354,6 +387,10 @@ TLegend* Plotter::createLeg(const TH1* data, const TList* bgl, const TList* sigl
   return leg;
 }
 
+//// Creates the TGraphError that is plotted in the stack and ratio plots
+/// tricky function because it takes a bool to ask if you want the ratio
+/// plots error or the stack plots error.  (True for ratio, false for stack)
+/// make more clean maybe?  Maybe?
 TGraphErrors* Plotter::createError(const TH1* error, bool ratio) {
   int Nbins =  error->GetXaxis()->GetNbins();
   Double_t* mcX = new Double_t[Nbins];
@@ -380,6 +417,9 @@ TGraphErrors* Plotter::createError(const TH1* error, bool ratio) {
   return mcError;
 }
 
+/// Resize pad in question (based on the bool values) to the ratio set in the style config
+// file, namely the value PadRatio which is TopHeight/BottomHeight.  
+/// If more space is needed, use the Margin values in the style config file
 void Plotter::sizePad(double ratio, TVirtualPad* pad, bool isTop) {
   if(isTop) pad->SetPad("top", "top", 0, 1 / (1.0 + ratio), 1, 1, 0);
   else  {
@@ -389,6 +429,7 @@ void Plotter::sizePad(double ratio, TVirtualPad* pad, bool isTop) {
   }
 }
 
+//// make line that is in the ratio plot at the value 1.  Most is beautification
 TF1* Plotter::createLine(TH1* data_mc) {
   TF1 *PrevFitTMP = new TF1("PrevFitTMP","pol0",-10000,10000);
   PrevFitTMP->SetMarkerStyle(20);
@@ -401,6 +442,13 @@ TF1* Plotter::createLine(TH1* data_mc) {
   return PrevFitTMP;
 }
  
+//// Monster function here.  Takes a histogram and starts from the left of it
+/// adds up the error in it and finds the ratio of the error to the value.  If
+// this ratio is less than limit value, it takes that bin.  If not, it will move
+/// to the left and add the next bin till the ratio value is less than the limit
+
+///some sort of witchcraft is going on here, may need to check and fix.  The limit
+/// value is not very representative for instance
 vector<double> Plotter::rebinner(const TH1* hist, double limit) {
   vector<double> bins;
   double toterror = 0.0, prevbin=0.0;
@@ -429,6 +477,9 @@ vector<double> Plotter::rebinner(const TH1* hist, double limit) {
     }
   }
 
+   ////// makes sure the first bin of the graph is included
+   //// probalby error here (that's why I do a check in the Checkstack
+   /// function, gulp
   if(bins.back() != end) {
     bins.push_back(end);
     if(hist->GetXaxis()->GetXmin() >= 0 && end !=hist->GetXaxis()->GetXmin()) bins.push_back(hist->GetXaxis()->GetXmin());
@@ -438,6 +489,9 @@ vector<double> Plotter::rebinner(const TH1* hist, double limit) {
 }
 
 
+///// The stack has a list inherently in it, so I made a function to 
+/// get the thstacks list and rebin it.  Not necessary, but eh.  Need to 
+/// fix delete stuff to stop hs and hsdraw nonsense
 THStack* Plotter::rebinStack(THStack* hs, const double* binner, int total) {
   THStack* newstack = new THStack(hs->GetName(), hs->GetName());
   TList* list = (TList*)hs->GetHists();
@@ -456,19 +510,7 @@ THStack* Plotter::rebinStack(THStack* hs, const double* binner, int total) {
 }
 
 
-
-void Plotter::setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
-  TAxis* yaxis = hs->GetYaxis();
-  if(styler.getDivideBins()) yaxis->SetTitle("Events/GeV");////get axis title stuff
-  else yaxis->SetTitle("Events");
-  ///  yaxis->SetLabelSize(hs->GetXaxis()->GetLabelSize());
-  double max = (error->GetMaximum() > datahist->GetMaximum()) ? error->GetMaximum() : datahist->GetMaximum();
-
-   hs->SetMaximum(max*(1.0/ratio + 1.0));
-
-}
-
-
+//// Function creates the significance plot on the bottom.  
 TList* Plotter::signalBottom(const TList* signal, const TH1D* background) {
   TList* returnList = new TList();
   
@@ -499,6 +541,8 @@ TList* Plotter::signalBottom(const TList* signal, const TH1D* background) {
   return returnList;
 }
 
+
+//// Function creates the Ratio Plot on the bottom
 TList* Plotter::signalBottom(const TList* signal, const TH1D* data, const TH1D* background) {
   TList* returnList = new TList();
   
@@ -521,8 +565,22 @@ TList* Plotter::signalBottom(const TList* signal, const TH1D* data, const TH1D* 
   return returnList;
 }
 
-  
+////This block as functions to set up the axes in the graph
 
+// Sets the graph so the maximum is seen (else if data is too tall, might not show up)
+/// Need to add in signal stuff to this as well
+void Plotter::setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
+  TAxis* yaxis = hs->GetYaxis();
+  if(styler.getDivideBins()) yaxis->SetTitle("Events/GeV");////get axis title stuff
+  else yaxis->SetTitle("Events");
+  ///  yaxis->SetLabelSize(hs->GetXaxis()->GetLabelSize());
+  double max = (error->GetMaximum() > datahist->GetMaximum()) ? error->GetMaximum() : datahist->GetMaximum();
+
+   hs->SetMaximum(max*(1.0/ratio + 1.0));
+
+}
+  
+//// just set label
 void Plotter::setXAxisBot(TH1* data_mc, double ratio) {
   TAxis* xaxis = data_mc->GetXaxis();
   xaxis->SetTitle(newLabel(data_mc->GetTitle()).c_str());
@@ -530,6 +588,8 @@ void Plotter::setXAxisBot(TH1* data_mc, double ratio) {
 }
 
 
+//// If it is a ratio plot, use a lot of magic to find a good
+//// window for the ratio plot.
 void Plotter::setYAxisBot(TAxis* yaxis, TH1* data_mc, double ratio) {
   double divmin = 0.0, divmax = 2.99;
   double low=2.99, high=0.0, tmpval;
@@ -546,7 +606,6 @@ void Plotter::setYAxisBot(TAxis* yaxis, TH1* data_mc, double ratio) {
     divmax = 1/divmin;
     factor *= 2.0;
   }
-
   yaxis->SetRangeUser(divmin - 0.00001,divmax - 0.00001);
   yaxis->SetLabelSize(yaxis->GetLabelSize()*ratio);
   yaxis->SetTitleSize(ratio*yaxis->GetTitleSize());
@@ -554,6 +613,8 @@ void Plotter::setYAxisBot(TAxis* yaxis, TH1* data_mc, double ratio) {
   yaxis->SetTitle("#frac{Data}{MC}");
 }
 
+//// if plot is a significance plot, finds the maximum and 
+/// changes the range to fit all of the graphs
 void Plotter::setYAxisBot(TAxis* yaxis, TList* signal, double ratio) {
   double max = 0;
   TH1D* tmphist = (TH1D*)signal->First();
@@ -571,6 +632,8 @@ void Plotter::setYAxisBot(TAxis* yaxis, TList* signal, double ratio) {
 }
 
 
+//// divdes all of the histogram by their width if told to by the style config file
+/// namely with the value DivideBins
 void Plotter::divideBin(TH1* data, TH1* error, THStack* hs, TList* signal) {
 
   for(int i = 0; i < data->GetXaxis()->GetNbins(); i++) {
@@ -605,12 +668,14 @@ void Plotter::divideBin(TH1* data, TH1* error, THStack* hs, TList* signal) {
 
 
 
-
+//// get the number of files total in the plotter
 int Plotter::getSize() {
   return FileList[0]->GetSize() + FileList[1]->GetSize() + FileList[2]->GetSize();
 }
 
 
+//// Get the filenames (have options for different lists). 
+/// puts the names into a vector.  Mainly used for the logfile class
 vector<string> Plotter::getFilenames(string option) {
   vector<string> filenames;
   TFile* tmp = NULL;
@@ -642,10 +707,12 @@ vector<string> Plotter::getFilenames(string option) {
   
 }
 
+//// set style given to the style of the plotter class
 void Plotter::setStyle(Style& style) {
   this->styler = style;
 }
 
+/// Add Normalized file to plotter
 void Plotter::addFile(Normer& norm) {
   string filename = norm.output;
   if(norm.use == 0) {
@@ -682,6 +749,8 @@ void Plotter::addFile(Normer& norm) {
 }
 
 
+//// A lot of regex stuff to extract the x axis label from the title
+// of the graph.  If the xaxis label is wrong, change the code here.
 string Plotter::newLabel(string stringkey) {
   string particle = "";
 
@@ -764,7 +833,10 @@ string Plotter::newLabel(string stringkey) {
 
 }
 
-
+////// helper function for newLabel.  Takes a section of the string
+/// and extracts the particles from it, then turns them into latex format.
+/// seperated by comma
+//// More robust would be vector<string> so could use different formatting
 string Plotter::listParticles(string toParse) {
   smatch m;
   regex part ("(Di)?(Tau(Jet)?|Muon|Electron|Jet|Met)");

@@ -7,9 +7,11 @@
 
 using namespace std;
 
+///// Read in config file that is used to find the files to normalize 
+/// and then put in the Plotter
 void read_info(string, map<string, Normer*>&);
 
-
+////Default output and style config file names.  Don't like that they are global, but works
 string output = "output.root";
 string stylename = "default";
 
@@ -23,6 +25,7 @@ int main(int argc, char* argv[]) {
 
   map<string, Normer*> plots;
   Plotter fullPlot;
+  ///// Parse input variables to change options and read in config files
   for(int i = 1; i < argc; ++i) {
     if(argv[i][0] == '-') {
       if(strcmp(argv[i],"-help") == 0) {
@@ -62,7 +65,6 @@ int main(int argc, char* argv[]) {
 
 
   int totalfiles = 0;
-  ///  vector<string> datan, bgn, sign;
   for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); ++it) {
     fullPlot.addFile(*it->second);
   }
@@ -76,6 +78,7 @@ int main(int argc, char* argv[]) {
   Style stylez("style/" + stylename);
   fullPlot.setStyle(stylez);
 
+  /// Main loop of function
   fullPlot.CreateStack(final, logfile);
 
   cout << "Finished making Stack Plot" << endl;
@@ -84,7 +87,7 @@ int main(int argc, char* argv[]) {
   final->Close();
 }
 
-
+///// Reads in config files and normalizes the files
 void read_info(string filename, map<string, Normer*>& plots) {
   typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
   ifstream info_file(filename);
