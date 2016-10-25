@@ -25,13 +25,28 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 
   bool noData = datalist->GetSize() == 0;
 
+  if(!onlyTop && noData) {
+    if(sglist->GetSize() == 0) onlyTop = true;
+    else if(bottomType == Ratio) {
+      cout << "Bottom Plot requested with Signal.  Setting to default of SigLeft:\nchange this using options if needed (run ./Plotter -help for all options" << endl;
+      setBottomType(SigLeft);
+    }
+  } else if(!onlyTop && sglist->GetSize() == 0) {
+    if(bottomType != Ratio) {
+      cout << "Bottom Plot requested without Signal and not ratio bottom.  Setting to default of Ratio:\nchange this using options if needed (run ./Plotter -help for all options" << endl;
+      setBottomType(Ratio);
+    }
+  }
+
   //// Require Backgrounds to run
   if(bglist->GetSize() == 0) {
     cout << "No backgrounds given: Aborting" << endl;
     exit(1);
   }
   //// Will run without data, just will remove ratio plot
-  if(noData) cout << "No Data given: Plotting without Data" << endl;
+  if(noData) {
+    cout << "No Data given: Plotting without Data" << endl;
+  }
 
   TString path( (char*)strstr( target->GetPath(), ":" ) );
   path.Remove( 0, 2 );
@@ -228,7 +243,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       // text->AddText("CMS Preliminary");
       // text->Draw();
 
-      if(!(noData || onlyTop)) {
+      if(!(onlyTop)) {
 	c->Divide(1,2);
 	c->cd(1);
 	sizePad(styler.getPadRatio(), gPad, true);
@@ -245,7 +260,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       errorstack->Draw("2");
       legend->Draw();
       setYAxisTop(datahist, error, styler.getHeightRatio(), hsdraw);
-      if(onlyTop || noData) {
+      if(noData) {
 	hsdraw->GetXaxis()->SetTitle(newLabel(hsdraw->GetTitle()).c_str());     
 	hsdraw->GetXaxis()->SetTitleSize(hsdraw->GetYaxis()->GetLabelSize());
       }
@@ -257,7 +272,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       TGraphErrors* errorratio = NULL;
       TList* signalBot = NULL;
 
-      if( !(noData || onlyTop) ) {
+      if( !onlyTop ) {
 	c->cd(2);
 	sizePad(styler.getPadRatio(), gPad, false);
 
@@ -298,7 +313,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       delete errorstack;
 
       delete[] binner;
-      if( !(noData || onlyTop) ) {
+      if( !onlyTop ) {
 	delete errorratio;
 	delete PrevFitTMP;
 	signalBot->Delete();
