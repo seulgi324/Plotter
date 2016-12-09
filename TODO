@@ -1,3 +1,6 @@
+better rebinning/make optional
+more robust normalizing (ie know when to ignore or do, ie different config)
+clean up to make more readable
 options and style working together
 legend placed so doesn't cover up
 get sigboth working (if need it)
