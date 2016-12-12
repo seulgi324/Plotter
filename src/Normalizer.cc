@@ -171,7 +171,18 @@ void Normer::MergeRootfile( TDirectory *target) {
       int spot = 0;
       double scale1 = (isData || xsec.at(spot) < 0) ? 1.0 : normFactor.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
       scale1 *= SF.at(spot);
+
+      for(int i = 1; i <= h1->GetXaxis()->GetNbins(); i++) {
+	if(h1->GetBinError(i) != h1->GetBinError(i)) {
+	  h1->SetBinError(i, abs(h1->GetBinContent(i)));
+	}
+      }
+
+
+
       if(!isData) h1->Scale(scale1);
+
+
 
       TFile *nextsource = (TFile*)sourcelist->After( first_source );
       
@@ -186,6 +197,12 @@ void Normer::MergeRootfile( TDirectory *target) {
 	  // }
 	  double scale = (isData || xsec.at(spot) < 0) ? 1.0 : normFactor.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
 	  scale *= SF.at(spot);
+	  for(int i = 1; i <= h2->GetXaxis()->GetNbins(); i++) {
+	    if(h2->GetBinError(i) != h2->GetBinError(i)) {
+	      h2->SetBinError(i, abs(h2->GetBinContent(i)));
+	    }
+	  }
+
 	  h1->Add( h2, scale);
 	  delete h2;
 	  
