@@ -746,7 +746,7 @@ void Plotter::setStyle(Style& style) {
 void Plotter::addFile(Normer& norm) {
   string filename = norm.output;
   if(norm.use == 0) {
-    cout << filename << ": Not all files found" << endl;
+    cout << filename << ": Not all files found" << endl << endl;
     return;
   } 
 

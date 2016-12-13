@@ -57,7 +57,6 @@ void Normer::setValues(vector<string> values) {
 
   if(values.size() == 6) {
     SF.push_back(stod(values[5]));
-    cout << "here" << values[5] << endl;
   } else  SF.push_back(1.);
 
   if(values.size() == 2) {
