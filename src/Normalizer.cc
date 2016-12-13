@@ -214,7 +214,7 @@ void Normer::MergeRootfile( TDirectory *target) {
       ////////////////////////////////////////////////////////////
 
       for(int ibin=0; ibin < (h1->GetXaxis()->GetNbins() + 1); ibin++) {
-      	h1->SetBinError(ibin, sqrt(pow(h1->GetBinError(ibin),2.0) + h1->GetBinContent(ibin)) );
+      	h1->SetBinError(ibin, sqrt(pow(h1->GetBinError(ibin),2.0) + abs(h1->GetBinContent(ibin))) );
       }
 
     }

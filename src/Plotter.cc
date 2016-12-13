@@ -497,7 +497,6 @@ vector<double> Plotter::rebinner(const TH1* hist, double limit) {
     if(toterror* prevbin != 0.) toterror *= pow(prevbin,2)/pow(prevbin+hist->GetBinContent(i),2);
 
     prevbin += hist->GetBinContent(i);
-    assert(hist->GetBinError(i) == hist->GetBinError(i));
     toterror += (2 * pow(hist->GetBinError(i),2))/pow(prevbin,2);
 
     if(toterror < limit2) {
