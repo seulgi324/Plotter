@@ -42,6 +42,7 @@ not as ripped off.
 #include <stdlib.h>
 #include <iostream>
 #include <array>
+#include <cmath>
 
 using namespace std;
 
@@ -55,12 +56,12 @@ class Normer {
 
 
   vector<string> input;
-  vector<double> skim, xsec;
+  vector<double> skim, xsec, SF;
   string output, type="";
   double lumi;
 
   TList* FileList;
-  vector<double> integral, CumulativeEfficiency, scaleFactor, scaleFactorError;
+  vector<double> normFactor;
   bool isData=false;
   int use=3;
 

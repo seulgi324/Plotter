@@ -6,7 +6,7 @@ using namespace std;
 #define turnLatex(x) ((latexer[x] == "") ? x : latexer[x])
 
 /////map of latex names.  If want to change how things look, change particle names here
-unordered_map<string, string> Plotter::latexer = { {"GenTau", "#tau"}, {"GenHadTau", "#tau_h"}, {"GenMuon", "#mu"}, {"TauJet", "#tau"}, {"Muon", "#mu"}, {"DiMuon", "#mu, #mu"}, {"DiTau", "#tau, #tau"}, {"Tau", "#tau"}, {"DiJet", "jj"}, {"Met", "#slash{E}_{T}"}, {"BJet", "b"}};
+unordered_map<string, string> Plotter::latexer = { {"GenTau", "#tau"}, {"GenHadTau", "#tau_{h}"}, {"GenMuon", "#mu"}, {"TauJet", "#tau"}, {"Muon", "#mu"}, {"DiMuon", "#mu, #mu"}, {"DiTau", "#tau, #tau"}, {"Tau", "#tau"}, {"DiJet", "jj"}, {"Met", "#slash{E}_{T}"}, {"BJet", "b"}};
 
 template <typename T>
 string to_string_with_precision(const T a_value, const int n = 6);
@@ -97,11 +97,11 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       
       /// h1 is the reference histogram to grab the other histos.
       /// here we also make the containers for the graphs
-      TH1 *h1 = (TH1*)obj;
-      TH1D* error = new TH1D("error", h1->GetTitle(), h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
-      TH1D* datahist = new TH1D("data", h1->GetTitle(), h1->GetXaxis()->GetNbins(), h1->GetXaxis()->GetXmin(), h1->GetXaxis()->GetXmax());
+      TH1* readObj = (TH1*)obj;
+      TH1D* error = new TH1D("error", readObj->GetTitle(), readObj->GetXaxis()->GetNbins(), readObj->GetXaxis()->GetXmin(), readObj->GetXaxis()->GetXmax());
+      TH1D* datahist = new TH1D("data", readObj->GetTitle(), readObj->GetXaxis()->GetNbins(), readObj->GetXaxis()->GetXmin(), readObj->GetXaxis()->GetXmax());
       TList* sigHists = new TList();
-      THStack *hs = new THStack(h1->GetName(),h1->GetName());
+      THStack *hs = new THStack(readObj->GetName(),readObj->GetName());
       
       /*------------data--------------*/
 
@@ -118,7 +118,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 	TFile* nextfile = (TFile*)FileList[i]->First();
 	while ( nextfile ) {
 	  nextfile->cd( path );
-	  TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
+	  TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(readObj->GetName());
 	  if(key2) {
 	    TH1* h2 = (TH1*)key2->ReadObj();
      /*------------Data--------------*/
@@ -156,6 +156,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 	      sigHists->Add(h2);
 	      nfile++;
 	    }
+
 	  }
 	  nextfile = (TFile*)FileList[i]->After(nextfile);
 	}
@@ -173,9 +174,19 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       /// default rebinning based on data error.  If no data, bin 
       /// based on background error
       vector<double> bins;
-      if(noData ) bins = rebinner(error, styler.getRebinLimit());
-      else bins = rebinner(datahist, styler.getRebinLimit());
 
+      TH1D* fullHist = new TH1D("full", readObj->GetTitle(), readObj->GetXaxis()->GetNbins(), readObj->GetXaxis()->GetXmin(), readObj->GetXaxis()->GetXmax());
+      fullHist->Add(error);
+      if(!noData) fullHist->Add(datahist);
+      TH1D* tmpsig = (TH1D*)sigHists->First();
+      while(tmpsig) {
+	fullHist->Add(tmpsig);
+	tmpsig = (TH1D*)sigHists->After(tmpsig);
+      }
+
+      // if(noData ) bins = rebinner(error, styler.getRebinLimit());
+      // else bins = rebinner(datahist, styler.getRebinLimit());
+      bins = rebinner(fullHist, styler.getRebinLimit());
 
       //// need to get rid of continue if possible because dirty deleting 
       /// happening here.  Maybe put CreateStack in main and make the class
@@ -193,6 +204,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       /// then puts into a double array in increasing order for Rebin function
       double* binner = new double[bins.size()];
       bool passed = true;
+      
       binner[0] = bins.back();
       for(int i = 1; i < bins.size(); i++) {
       	if(bins.at(bins.size() - i) >= bins.at(bins.size() - i - 1))  {
@@ -237,7 +249,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       ////draw graph
       target->cd();
 
-      TCanvas *c = new TCanvas(h1->GetName(), h1->GetName());//403,50,600,600);
+      TCanvas *c = new TCanvas(readObj->GetName(), readObj->GetName());//403,50,600,600);
       //// need to work on top text
       // TPaveText* text = new TPaveText(0.05, 0.7, 0.5, 1.);
       // text->AddText("CMS Preliminary");
@@ -252,7 +264,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       hsdraw->Draw();
       datahist->Draw("same");
 
-      TH1D* tmpsig = (TH1D*)sigHists->First();
+      tmpsig = (TH1D*)sigHists->First();
       while(tmpsig) {
 	tmpsig->Draw("same");
 	tmpsig = (TH1D*)sigHists->After(tmpsig);
@@ -481,10 +493,12 @@ vector<double> Plotter::rebinner(const TH1* hist, double limit) {
       bins.push_back(hist->GetXaxis()->GetBinUpEdge(i));
       foundfirst = true;
     } else end = hist->GetXaxis()->GetBinLowEdge(i);
-
+  
     if(toterror* prevbin != 0.) toterror *= pow(prevbin,2)/pow(prevbin+hist->GetBinContent(i),2);
+
     prevbin += hist->GetBinContent(i);
     toterror += (2 * pow(hist->GetBinError(i),2))/pow(prevbin,2);
+
     if(toterror < limit2) {
       bins.push_back(hist->GetXaxis()->GetBinLowEdge(i));
       toterror = 0.0;
@@ -501,6 +515,7 @@ vector<double> Plotter::rebinner(const TH1* hist, double limit) {
   }
 
   return bins;
+
 }
 
 
@@ -806,7 +821,7 @@ string Plotter::newLabel(string stringkey) {
     return "#DeltaR("+ listParticles(m[1].str()) + ")";
   }
   else if(regex_match(stringkey, m, MetMt)) {
-    return "M_t(" + turnLatex(m[2].str()+m[4].str()) + ") [GeV]";
+    return "M_{T}(" + turnLatex(m[2].str()+m[4].str()) + ") [GeV]";
   }
   else if(regex_match(stringkey, m, eta))  {
     particle += (m[2].str() != "") ? "#Delta" : "";
@@ -843,7 +858,7 @@ string Plotter::newLabel(string stringkey) {
   } else if(regex_match(stringkey, m, zdecay)) {
     return listParticles(m[1].str()) + "is Z Decay";
   }
-  cout << stringkey << "|" << endl;
+  
   return stringkey;
 
 }

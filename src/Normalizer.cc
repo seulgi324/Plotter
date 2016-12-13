@@ -12,23 +12,18 @@ Normer::Normer(vector<string> values) {
   if(values.size() == 2) {
      isData = true;
      type = "data";
-  } else if(values.size() == 5) type = values[4];
+  } else if(values.size() >= 5) type = values[4];
 
 }
 
 
-Normer::Normer(const Normer& other) {
+Normer::Normer(const Normer& other) :
+  output(other.output), type(other.type), lumi(other.lumi), use(other.use)
+{
   input = other.input;
   skim = other.skim;
   xsec = other.xsec;
-  output = other.output;
-  type = other.type;
-  lumi = other.lumi;
-  integral = other.integral;
-  CumulativeEfficiency = other.CumulativeEfficiency;
-  scaleFactor = other.scaleFactor;
-  scaleFactorError= other.scaleFactorError;
-  use = other.use;
+  normFactor = other.normFactor;
   isData = other.isData;
   FileList = new TList();
 
@@ -58,16 +53,20 @@ Normer::~Normer() {
 void Normer::setValues(vector<string> values) {
   input.push_back(values[0]);
   use = min(shouldAdd(values[0], values[1]),use);
-  CumulativeEfficiency.push_back(1.);
-  scaleFactor.push_back(1.);
-  scaleFactorError.push_back(0.);
-  integral.push_back(0);
+  normFactor.push_back(1.);
+
+  if(values.size() == 6) {
+    SF.push_back(stod(values[5]));
+    cout << "here" << values[5] << endl;
+  } else  SF.push_back(1.);
+
   if(values.size() == 2) {
     xsec.push_back(1.0);
     skim.push_back(1.0);
   } else {
      xsec.push_back(stod(values[2]));
      skim.push_back(stod(values[3]));
+
   }
 }
 
@@ -141,18 +140,14 @@ void Normer::MergeRootfile( TDirectory *target) {
 
   if(events) {
     int nplot = 0;
-
-    integral.at(nplot) = events->GetBinContent(2);
-    CumulativeEfficiency.at(nplot) = events->GetBinContent(2)/ events->GetBinContent(1);
+    normFactor.at(nplot) = 1.0/events->GetBinContent(1);
 
     TFile *nextsource = (TFile*)sourcelist->After( first_source );
     while( nextsource) {
       nplot++;
       nextsource->cd(path);
       gDirectory->GetObject("Events", events);
-      integral.at(nplot) = events->GetBinContent(2);
-      CumulativeEfficiency.at(nplot) = events->GetBinContent(2)/ events->GetBinContent(1);
-
+      normFactor.at(nplot) = 1.0/events->GetBinContent(1);
       nextsource = (TFile*)sourcelist->After( nextsource );
     }
   }
@@ -172,8 +167,22 @@ void Normer::MergeRootfile( TDirectory *target) {
     if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
       TH1 *h1 = (TH1*)obj;
       h1->Sumw2();
+
       int spot = 0;
-      if(!isData && integral.at(spot) != 0) h1->Scale(CumulativeEfficiency.at(spot)/integral.at(spot) * xsec.at(spot)* lumi* skim.at(spot));
+      double scale1 = (isData || xsec.at(spot) < 0) ? 1.0 : normFactor.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
+      scale1 *= SF.at(spot);
+
+      for(int i = 1; i <= h1->GetXaxis()->GetNbins(); i++) {
+	if(h1->GetBinError(i) != h1->GetBinError(i)) {
+	  h1->SetBinError(i, abs(h1->GetBinContent(i)));
+	}
+      }
+
+
+
+      if(!isData) h1->Scale(scale1);
+
+
 
       TFile *nextsource = (TFile*)sourcelist->After( first_source );
       
@@ -183,9 +192,16 @@ void Normer::MergeRootfile( TDirectory *target) {
 	TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
 	if (key2) {
 	  TH1 *h2 = (TH1*)key2->ReadObj();
+
 	  h2->Sumw2();
-	  if(integral.at(spot) == 0) integral.at(spot) = 0.1; 
-	  double scale = (isData) ? 1.0 : CumulativeEfficiency.at(spot)/integral.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
+	  // }
+	  double scale = (isData || xsec.at(spot) < 0) ? 1.0 : normFactor.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
+	  scale *= SF.at(spot);
+	  for(int i = 1; i <= h2->GetXaxis()->GetNbins(); i++) {
+	    if(h2->GetBinError(i) != h2->GetBinError(i)) {
+	      h2->SetBinError(i, abs(h2->GetBinContent(i)));
+	    }
+	  }
 
 	  h1->Add( h2, scale);
 	  delete h2;
@@ -198,7 +214,7 @@ void Normer::MergeRootfile( TDirectory *target) {
       ////////////////////////////////////////////////////////////
 
       for(int ibin=0; ibin < (h1->GetXaxis()->GetNbins() + 1); ibin++) {
-      	h1->SetBinError(ibin, sqrt(pow(h1->GetBinError(ibin),2.0) + h1->GetBinContent(ibin)) );
+      	h1->SetBinError(ibin, sqrt(pow(h1->GetBinError(ibin),2.0) + abs(h1->GetBinContent(ibin))) );
       }
 
     }
