@@ -78,6 +78,8 @@ class Plotter {
   void setBottomType(Bottom input) {bottomType = input;}
   void setSignificanceSSqrtB() {ssqrtsb = false;}
   void setNoBottom() {onlyTop = true;}
+  void getPresetBinning(string);
+
 
  private:
   TList* FileList[3] = {new TList(), new TList(), new TList()};
@@ -107,6 +109,8 @@ class Plotter {
   TF1* createLine(TH1*);
 
   vector<double> rebinner(const TH1*, double);
+
+  unordered_map<string, vector<pair<int, double>>> explicitBins;
 
   THStack* rebinStack(THStack*, const double*, int);
   void divideBin(TH1*, TH1*,THStack*, TList*);

@@ -70,6 +70,7 @@ int main(int argc, char* argv[]) {
 
 
 
+  fullPlot.getPresetBinning("style/sample.binning");
 
   int totalfiles = 0;
   for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); ++it) {

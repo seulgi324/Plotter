@@ -1,9 +1,12 @@
+
 #include "Plotter.h"
 
 using namespace std;
 
 ///// macro to save space.  Tests if name is in latex map, if not, it just uses the name given
 #define turnLatex(x) ((latexer[x] == "") ? x : latexer[x])
+
+const double EPSILON_VALUE = 0.0001;
 
 /////map of latex names.  If want to change how things look, change particle names here
 unordered_map<string, string> Plotter::latexer = { {"GenTau", "#tau"}, {"GenHadTau", "#tau_{h}"}, {"GenMuon", "#mu"}, {"TauJet", "#tau"}, {"Muon", "#mu"}, {"DiMuon", "#mu, #mu"}, {"DiTau", "#tau, #tau"}, {"Tau", "#tau"}, {"DiJet", "jj"}, {"Met", "#slash{E}_{T}"}, {"BJet", "b"}};
@@ -186,7 +189,34 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 
       // if(noData ) bins = rebinner(error, styler.getRebinLimit());
       // else bins = rebinner(datahist, styler.getRebinLimit());
-      bins = rebinner(fullHist, styler.getRebinLimit());
+      if(explicitBins.find(readObj->GetTitle()) == explicitBins.end()) bins = rebinner(fullHist, styler.getRebinLimit());
+      else {
+	bins.push_back(readObj->GetXaxis()->GetXmin());
+	double lastbin = readObj->GetXaxis()->GetXmax();
+	double currentVal = bins.at(0);
+	if(explicitBins[readObj->GetTitle()].size() == 1) {
+	  int totbins = explicitBins[readObj->GetTitle()][0].first;
+	  double binWidth = explicitBins[readObj->GetTitle()][0].second;
+	  if(binWidth < 0) {
+	    if(totbins < 0) totbins = 1;
+	    binWidth = (lastbin-bins.at(0))/totbins;
+	  }
+	  while(abs(currentVal-lastbin) > EPSILON_VALUE) {
+	    currentVal += binWidth;
+	    bins.push_back(currentVal);
+	  }
+	}
+	for(auto it: explicitBins[readObj->GetTitle()]) {
+	  int numLeft = it.first;
+	  double binWidth = it.second;
+	  while(numLeft > 0 && abs(currentVal-lastbin) > EPSILON_VALUE) {
+	    currentVal += binWidth;
+	    bins.push_back(currentVal);
+	    numLeft--;
+	  }
+	}
+	if(abs(currentVal-lastbin) > EPSILON_VALUE) bins.push_back(lastbin);
+      }
 
       //// need to get rid of continue if possible because dirty deleting 
       /// happening here.  Maybe put CreateStack in main and make the class
@@ -697,7 +727,6 @@ void Plotter::divideBin(TH1* data, TH1* error, THStack* hs, TList* signal) {
 }
 
 
-
 //// get the number of files total in the plotter
 int Plotter::getSize() {
   return FileList[0]->GetSize() + FileList[1]->GetSize() + FileList[2]->GetSize();
@@ -742,6 +771,7 @@ void Plotter::setStyle(Style& style) {
   this->styler = style;
 }
 
+
 /// Add Normalized file to plotter
 void Plotter::addFile(Normer& norm) {
   string filename = norm.output;
@@ -777,6 +807,67 @@ void Plotter::addFile(Normer& norm) {
   
 
 }
+
+void Plotter::getPresetBinning(string filename) {
+  ifstream info_file(filename);
+
+  if(!info_file) {
+    std::cout << "could not open file " << filename <<std::endl;
+    exit(1);
+  }
+
+  string line;
+  while(getline(info_file, line)) {
+    string name;
+    vector<string> tmpVals;
+    vector<pair<int, double>> tmpPairs;
+    string current = "";
+    int bracNum = 0;
+    for(auto it: line) {
+      if(it == '[' || it == ']' || it == ',') {
+	if(current != "") {
+	  if(bracNum == 0) name = current;
+	  else if(bracNum > 0) tmpVals.push_back(current);
+	  current = "";
+	}
+	if(it == '[' && ++bracNum > 2) {
+	  cout << "Error: Current code only allows for 2 levels of brackets.  Review line:" << endl;
+	  cout << line << endl;
+	  exit(1);
+	} else if(it == ']') {
+	  if(--bracNum < 0 || (tmpVals.size() != 2 && tmpVals.size() != 0)) {
+	    cout << "Error: Closing Bracket without corresponding open bracket: Review line:" << endl;
+	    cout << line << endl;
+	    exit(1);
+	  }
+	  if(tmpVals.size() == 2) tmpPairs.push_back(make_pair(stoi(tmpVals.at(0)), stod(tmpVals.at(1))));
+	  tmpVals.clear();
+	}
+      } else if(it == ' ' || it == '\t') continue;
+      else current.push_back(it);
+    }
+  
+    if(bracNum != 0) {
+      cout << "Error: Not all Brackets were terminated.  Please review the line:" << endl;
+      cout << line << endl;
+      exit(1);
+    } // else if(e1.size()*e2.size() != 0) {
+    //   cout << "Error: Input requires all inputs to be enclosed by brackets. Review line:" << endl;
+    //   cout << line << endl;
+    //   exit(1);
+    // }
+    if(explicitBins.find(name) != explicitBins.end()) {
+      cout << "Duplicate histogram:" << endl;
+      cout << name << endl;
+      exit(1);
+    }
+    explicitBins[name] = tmpPairs;
+  }
+  info_file.close();
+  
+}
+
+
 
 
 //// A lot of regex stuff to extract the x axis label from the title
