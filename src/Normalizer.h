@@ -54,7 +54,7 @@ class Normer {
   Normer& operator=(const Normer& rhs);
   ~Normer();
 
-
+  void setUse() {if(use == 2) use = 1;}
   vector<string> input;
   vector<double> skim, xsec, SF;
   string output, type="";

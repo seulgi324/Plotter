@@ -10,6 +10,8 @@ using namespace std;
 ///// Read in config file that is used to find the files to normalize 
 /// and then put in the Plotter
 void read_info(string, map<string, Normer*>&);
+int getModTime(const char *path);
+bool process_dummy(string inConfig);
 
 ////Default output and style config file names.  Don't like that they are global, but works
 string output = "output.root";
@@ -25,6 +27,8 @@ int main(int argc, char* argv[]) {
 
   map<string, Normer*> plots;
   Plotter fullPlot;
+  bool needToRenorm = false;
+
   ///// Parse input variables to change options and read in config files
   for(int i = 1; i < argc; ++i) {
     if(argv[i][0] == '-') {
@@ -58,14 +62,19 @@ int main(int argc, char* argv[]) {
 	cout << "wrong option, exiting" << endl;
 	exit(0);
       }
-    } else read_info(argv[i], plots);
+    } else {
+      needToRenorm =  process_dummy(argv[i]);
+      read_info(argv[i], plots);
+    }
   }
 
 
 
+  fullPlot.getPresetBinning("style/sample.binning");
 
   int totalfiles = 0;
   for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); ++it) {
+    if(needToRenorm) it->second->setUse();
     fullPlot.addFile(*it->second);
   }
 
@@ -124,4 +133,42 @@ void read_info(string filename, map<string, Normer*>& plots) {
   for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); it++) {
     it->second->setLumi(lumi);
   }
+}
+
+bool process_dummy(string inConfig) {
+  ifstream indummy(".dummyinfo");
+  int configMod, plotterMod;
+  string configName;
+  if(indummy) {
+    string line;
+    getline(indummy, line);
+    plotterMod = stod(line);
+    getline(indummy, configName);
+    getline(indummy, line);
+    configMod = stod(line);
+  }
+  indummy.close();
+
+  int newPlotterMod = getModTime("Plotter");
+  int newConfigMod =  getModTime(inConfig.c_str());
+
+  ofstream outdummy(".dummyinfo");
+  outdummy << newPlotterMod << endl;
+  outdummy << inConfig << endl;
+  outdummy << newConfigMod << endl;
+
+  outdummy.close();
+
+  if((configMod < newConfigMod) || (plotterMod < newPlotterMod) || (configName != inConfig)) return true;
+  return false;
+
+}
+
+int getModTime(const char *path) {
+  struct stat attr;
+  stat(path, &attr);
+  char date[100] = {0};
+  strftime(date, 100, "%s", localtime(&attr.st_mtime));
+  return atoi(date);
+
 }
