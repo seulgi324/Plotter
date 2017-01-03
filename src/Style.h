@@ -70,38 +70,7 @@ class Style {
   double getRebinLimit() {return rebinlimit;}
   bool getDivideBins() {return dividebins;}
   bool getBinLimit() {return binlimit;}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
  private:
   TStyle* styler;
   map<string, double> values;
