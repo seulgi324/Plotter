@@ -192,7 +192,6 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       // else bins = rebinner(datahist, styler.getRebinLimit());
       if(explicitBins.find(readObj->GetTitle()) == explicitBins.end()) bins = rebinner(fullHist, styler.getRebinLimit());
       else {
-	cout << "manual" << endl;
 	bins.push_back(readObj->GetXaxis()->GetXmin());
 	double lastbin = readObj->GetXaxis()->GetXmax();
 	double currentVal = bins.at(0);
@@ -219,10 +218,6 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 	reverse(bins.begin(), bins.end());
 
       }
-      for(auto blah : bins) {
-	cout << blah << " | ";
-      }
-      cout << endl;
 
       //// need to get rid of continue if possible because dirty deleting 
       /// happening here.  Maybe put CreateStack in main and make the class
