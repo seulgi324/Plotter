@@ -97,7 +97,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 
     TObject *obj = key->ReadObj();
     if ( obj->IsA() ==  TH1D::Class() || obj->IsA() ==  TH1F::Class() ) {
-      
+
       /// h1 is the reference histogram to grab the other histos.
       /// here we also make the containers for the graphs
       TH1* readObj = (TH1*)obj;
@@ -116,7 +116,8 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       //// annoying configuration stuff.  Maybe later
 
       int nfile = 0;
-
+      
+      
       for(int i = 0; i < 3; i++) {
 	TFile* nextfile = (TFile*)FileList[i]->First();
 	while ( nextfile ) {
@@ -164,7 +165,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 	  nextfile = (TFile*)FileList[i]->After(nextfile);
 	}
       }
-      
+
       /*--------------write out------------*/
 
       datahist->SetMarkerStyle(20);
@@ -191,32 +192,37 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       // else bins = rebinner(datahist, styler.getRebinLimit());
       if(explicitBins.find(readObj->GetTitle()) == explicitBins.end()) bins = rebinner(fullHist, styler.getRebinLimit());
       else {
+	cout << "manual" << endl;
 	bins.push_back(readObj->GetXaxis()->GetXmin());
 	double lastbin = readObj->GetXaxis()->GetXmax();
 	double currentVal = bins.at(0);
-	if(explicitBins[readObj->GetTitle()].size() == 1) {
-	  int totbins = explicitBins[readObj->GetTitle()][0].first;
-	  double binWidth = explicitBins[readObj->GetTitle()][0].second;
-	  if(binWidth < 0) {
-	    if(totbins < 0) totbins = 1;
-	    binWidth = (lastbin-bins.at(0))/totbins;
-	  }
-	  while(abs(currentVal-lastbin) > EPSILON_VALUE) {
-	    currentVal += binWidth;
-	    bins.push_back(currentVal);
-	  }
-	}
+
 	for(auto it: explicitBins[readObj->GetTitle()]) {
 	  int numLeft = it.first;
 	  double binWidth = it.second;
-	  while(numLeft > 0 && abs(currentVal-lastbin) > EPSILON_VALUE) {
+	  if(binWidth <= 0) {
+	    if(numLeft <= 0) {
+	      numLeft = 1;
+	    }
+	    binWidth = lastbin - currentVal/numLeft;
+	  } else if(numLeft <= 0) {
+	    numLeft = (int)((lastbin - currentVal)/binWidth);
+	  }
+	  while(numLeft > 0 && lastbin - currentVal > EPSILON_VALUE) {
 	    currentVal += binWidth;
 	    bins.push_back(currentVal);
 	    numLeft--;
 	  }
 	}
 	if(abs(currentVal-lastbin) > EPSILON_VALUE) bins.push_back(lastbin);
+	
+	reverse(bins.begin(), bins.end());
+
       }
+      for(auto blah : bins) {
+	cout << blah << " | ";
+      }
+      cout << endl;
 
       //// need to get rid of continue if possible because dirty deleting 
       /// happening here.  Maybe put CreateStack in main and make the class
@@ -244,8 +250,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       	binner[i] = bins.at(bins.size() - i - 1);
       }
 
-
-
+      
       ////rebin histograms
       /// make new stack because hs gets deleted in teh rebinstack function.  Maybe 
       /// this isn't necessary.  A little jaring to make the change.  Also, I've put
@@ -264,7 +269,6 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       	delete sigHists;
       	sigHists = tmplist;
       } 
-
 
 
       ///legend stuff
@@ -308,7 +312,6 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       }
 
 
-
       // ///second pad
       TF1* PrevFitTMP = NULL;
       TGraphErrors* errorratio = NULL;
@@ -342,7 +345,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       c->cd();
       c->Write(c->GetName());
       c->Close();
-      
+
       /// so many delete.  Probably not doing this right, but this program is so small
       /// memory leaks basically don't matter.  
       /// delete vs Delete() still up in the air.  delete doesn't delete objects in container
@@ -362,12 +365,14 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       }
 
     } else if ( obj->IsA()->InheritsFrom( TDirectory::Class() ) ) {
+
       target->cd();
       TDirectory *newdir = target->mkdir( obj->GetName(), obj->GetTitle() );
 
       CreateStack( newdir, logfile );
 
     } else if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
+
       continue;
 
     } else {
@@ -809,6 +814,7 @@ void Plotter::addFile(Normer& norm) {
 }
 
 void Plotter::getPresetBinning(string filename) {
+
   ifstream info_file(filename);
 
   if(!info_file) {

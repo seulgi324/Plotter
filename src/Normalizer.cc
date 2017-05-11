@@ -52,7 +52,13 @@ Normer::~Normer() {
 /// the adding of files when read in from the config file
 void Normer::setValues(vector<string> values) {
   input.push_back(values[0]);
-  use = min(shouldAdd(values[0], values[1]),use);
+  string mod_outfile = values[1];
+  while(mod_outfile.find("#") != string::npos) {
+    mod_outfile.erase(mod_outfile.find("#"), 1);
+  }
+
+
+  use = min(shouldAdd(values[0], mod_outfile),use);
   normFactor.push_back(1.);
 
   if(values.size() == 6) {
