@@ -203,15 +203,15 @@ void Normer::MergeRootfile( TDirectory *target) {
 
 
       if(strcmp(h1->GetTitle(),"Events") == 0) {
-	h1->SetBinError(2,getBayesError(h1->GetBinContent(2), h1->GetBinContent(1)));
+      	h1->SetBinError(2,getBayesError(h1->GetBinContent(2), h1->GetBinContent(1)));
       } else {
 	for(int i = 1; i <= h1->GetXaxis()->GetNbins(); i++) {
-	  if(h1->GetBinError(i) != h1->GetBinError(i)) {
+	  if(h1->GetBinError(i) != h1->GetBinError(i) || h1->GetBinError(i) > h1->GetBinContent(i)) {
 	    h1->SetBinError(i, abs(h1->GetBinContent(i)));
 	  }
 	}
       }
-
+	
       if(!isData) h1->Scale(scale1);
 
       TFile *nextsource = (TFile*)sourcelist->After( first_source );
@@ -232,7 +232,7 @@ void Normer::MergeRootfile( TDirectory *target) {
 	    h2->SetBinError(2,getBayesError(h2->GetBinContent(2), h2->GetBinContent(1)));
 	  } else {
 	    for(int i = 1; i <= h2->GetXaxis()->GetNbins(); i++) {
-	      if(h2->GetBinError(i) != h2->GetBinError(i)) {
+	      if(h2->GetBinError(i) != h2->GetBinError(i) || h2->GetBinError(i) > h2->GetBinContent(i)) {
 		h2->SetBinError(i, abs(h2->GetBinContent(i)));
 	      }
 	    }
