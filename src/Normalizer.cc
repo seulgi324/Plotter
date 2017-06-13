@@ -121,6 +121,24 @@ void Normer::print() {
   cout << endl;
 }
 
+double Normer::getBayesError(double pass, double full) {
+  if(pass > full) return 0;
+  double effer = pass/full;
+  double effer_err = sqrt(effer*(1-effer)/full);
+  if( effer + effer_err < 1 && effer - effer_err > 0) {
+    return effer_err*full;
+  } else {
+    TH1D* first = new TH1D("first", "first", 1, 0, 1);
+    TH1D* second = new TH1D("second", "second", 1, 0, 1);
+    first->SetBinContent(1, pass);
+    second->SetBinContent(1, full);
+    TGraphAsymmErrors* eff = new TGraphAsymmErrors(first, second, "b(1,1) mode");
+    return eff->GetErrorYhigh(0)*full;
+  }
+
+  return 0;
+}
+
 
 
 ///// Ripped hadd function.  Adds all the histograms together 
@@ -144,9 +162,13 @@ void Normer::MergeRootfile( TDirectory *target) {
   current_sourcedir->GetObject("Events", events);
 
   if(events) {
+    TH1D* efficiency=new TH1D("eff", "eff", 1, 0, 1);
+    // target->cd();
+    // efficiency->Write();
+
+    first_source->cd( path );
     int nplot = 0;
     normFactor.at(nplot) = 1.0/events->GetBinContent(1);
-
     TFile *nextsource = (TFile*)sourcelist->After( first_source );
     while( nextsource) {
       nplot++;
@@ -177,17 +199,20 @@ void Normer::MergeRootfile( TDirectory *target) {
       double scale1 = (isData || xsec.at(spot) < 0) ? 1.0 : normFactor.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
       scale1 *= SF.at(spot);
 
-      for(int i = 1; i <= h1->GetXaxis()->GetNbins(); i++) {
-	if(h1->GetBinError(i) != h1->GetBinError(i)) {
-	  h1->SetBinError(i, abs(h1->GetBinContent(i)));
+
+
+
+      if(strcmp(h1->GetTitle(),"Events") == 0) {
+	h1->SetBinError(2,getBayesError(h1->GetBinContent(2), h1->GetBinContent(1)));
+      } else {
+	for(int i = 1; i <= h1->GetXaxis()->GetNbins(); i++) {
+	  if(h1->GetBinError(i) != h1->GetBinError(i)) {
+	    h1->SetBinError(i, abs(h1->GetBinContent(i)));
+	  }
 	}
       }
 
-
-
       if(!isData) h1->Scale(scale1);
-
-
 
       TFile *nextsource = (TFile*)sourcelist->After( first_source );
       
@@ -202,9 +227,14 @@ void Normer::MergeRootfile( TDirectory *target) {
 	  // }
 	  double scale = (isData || xsec.at(spot) < 0) ? 1.0 : normFactor.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
 	  scale *= SF.at(spot);
-	  for(int i = 1; i <= h2->GetXaxis()->GetNbins(); i++) {
-	    if(h2->GetBinError(i) != h2->GetBinError(i)) {
-	      h2->SetBinError(i, abs(h2->GetBinContent(i)));
+
+	  if(strcmp(h2->GetTitle(),"Events") == 0) {
+	    h2->SetBinError(2,getBayesError(h2->GetBinContent(2), h2->GetBinContent(1)));
+	  } else {
+	    for(int i = 1; i <= h2->GetXaxis()->GetNbins(); i++) {
+	      if(h2->GetBinError(i) != h2->GetBinError(i)) {
+		h2->SetBinError(i, abs(h2->GetBinContent(i)));
+	      }
 	    }
 	  }
 
@@ -218,9 +248,9 @@ void Normer::MergeRootfile( TDirectory *target) {
       ////  To gain back Poisson error, uncomment this line /////
       ////////////////////////////////////////////////////////////
 
-      for(int ibin=0; ibin < (h1->GetXaxis()->GetNbins() + 1); ibin++) {
-      	h1->SetBinError(ibin, sqrt(pow(h1->GetBinError(ibin),2.0) + abs(h1->GetBinContent(ibin))) );
-      }
+      // for(int ibin=0; ibin < (h1->GetXaxis()->GetNbins() + 1); ibin++) {
+      // 	h1->SetBinError(ibin, sqrt(pow(h1->GetBinError(ibin),2.0) + abs(h1->GetBinContent(ibin))) );
+      // }
 
     }
     else if ( obj->IsA()->InheritsFrom( TTree::Class() ) ) {

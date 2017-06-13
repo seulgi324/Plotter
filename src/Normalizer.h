@@ -30,6 +30,7 @@ not as ripped off.
 #include <TF1.h>
 #include <TStyle.h>
 #include <TROOT.h>
+#include <TEfficiency.h>
 
 #include <vector>
 #include <time.h>
@@ -71,6 +72,7 @@ class Normer {
   int shouldAdd(string, string);
   int getModTime(const char*);
   void MergeRootfile( TDirectory*);
+  double getBayesError(double pass, double full);
   void print();
 };
 
