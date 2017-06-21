@@ -126,12 +126,31 @@ def main():
 
     ##an other example is the tree stuff
 
-    histContainer.getHistFromTree2d(500,0,5000,r"k-factor",1000,0,2,r"M_{T} [GeV]" ,"ThisWeight*(lepton_type==11)*(mt>50)*(pt/met<1.5)*(pt/met>0.4)*(delta_phi>2.4)","mt:kfak","Trees/slimtree")
+    #histContainer.getHistFromTree2d(500,0,5000,r"k-factor",1000,0,2,r"M_{T} [GeV]" ,"ThisWeight*(lepton_type==11)*(mt>50)*(pt/met<1.5)*(pt/met>0.4)*(delta_phi>2.4)","mt:kfak","Trees/slimtree")
     #this works like:
     #getHistFromTree(bins,xmin,xmax,xtitle,cut,value,tree,weight=None)
     #and
     #getHistFromTree2d(xbins,xmin,xmax,xtitle,ybins,ymin,ymax,ytitle,cut,value,tree,weight=None)
     #where value has to be a string "y:x" (root logic)
+
+
+    #or do a loop
+    #plotStuff=[
+    ##getHistFromTree(binns,xmin,xmax,xtitle,cut,value,tree,weight=None)
+    #[100,0,1000,"jet p_{T} [GeV]","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","jet1_et","Trees/slimtree"],
+    #[100,0,1000,"e p_{T} [GeV]","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","pt","Trees/slimtree"],
+    #[100,0,1000,"MET [GeV]","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","met","Trees/slimtree"],
+    #[100,-5,5,r"\eta","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","lepton_eta","Trees/slimtree"],
+    #[100,-5,5,r"\phi","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","lepton_phi","Trees/slimtree"],
+    #[100,-5,5,r"MET \phi","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","met_phi","Trees/slimtree"],
+    #[100,-5,5,r"jet \eta","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","jet1_eta","Trees/slimtree"],
+    #[100,-5,5,r"jet \phi","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","jet1_phi","Trees/slimtree"],
+    #[100,0,3.146,r"\Delta\phi(l,MET)","ThisWeight*(lepton_type==11)*(mt>380&&mt<500)","delta_phi","Trees/slimtree"],
+    #]
+    #for plot in plotStuff:
+
+        #histContainer.getHistFromTree(plot[0],plot[1],plot[2],plot[3],plot[4],plot[5],plot[6])
+
 
 
 
