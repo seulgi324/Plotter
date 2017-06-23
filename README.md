@@ -16,6 +16,14 @@ For more details, go to the Wiki for this code (https://github.com/BSM3G/Plotter
 
 
 
+if you want to youse the python plotter install:
+
+http://www.rootpy.org/install.html
+
+and for madplotlib plots you might want CMSSW_8_4+
+
+
+
 
 
 
