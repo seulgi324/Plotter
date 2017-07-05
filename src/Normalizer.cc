@@ -127,15 +127,18 @@ double Normer::getBayesError(double pass, double full) {
   double effer_err = sqrt(effer*(1-effer)/full);
   if( effer + effer_err < 1 && effer - effer_err > 0) {
     return effer_err*full;
-  } else {
-    TH1D* first = new TH1D("first", "first", 1, 0, 1);
-    TH1D* second = new TH1D("second", "second", 1, 0, 1);
-    first->SetBinContent(1, pass);
-    second->SetBinContent(1, full);
-    TGraphAsymmErrors* eff = new TGraphAsymmErrors(first, second, "b(1,1) mode");
+  } 
+  TH1D* first = new TH1D("first", "first", 1, 0, 1);
+  TH1D* second = new TH1D("second", "second", 1, 0, 1);
+  first->SetBinContent(1, pass);
+  second->SetBinContent(1, full);
+  TGraphAsymmErrors* eff = new TGraphAsymmErrors(first, second, "b(1,1) mode");
+  effer_err = eff->GetErrorYhigh(0);
+  if( effer + effer_err < 1 && effer - effer_err > 0) {
     return eff->GetErrorYhigh(0)*full;
+  } else {
+    return pass;
   }
-
   return 0;
 }
 
