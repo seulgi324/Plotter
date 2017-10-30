@@ -648,7 +648,7 @@ class plotter():
 
     def _Calc_additional_plot(self, plot, pos):
         if plot == 'Ratio':
-            self._add_plots_labels[pos] = 'Data/MC'
+            self._add_plots_labels[pos] = 'Data/Exp.'
             self._add_plots_ref_line[pos] = 1.
             return self._Calc_ratio()
         elif plot == 'Diff':
@@ -660,13 +660,17 @@ class plotter():
             self._add_plots_ref_line[pos] = 0.
             return self._Calc_signi()
         elif plot == 'DiffRatio':
-            self._add_plots_labels[pos] = '$\Delta$ / MC'
+            self._add_plots_labels[pos] = '$\Delta$ / Exp.'
             self._add_plots_ref_line[pos] = 0.
             return self._Calc_diffratio()
         elif plot == 'DiffRatio_width_increase':
-            self._add_plots_labels[pos] = '$\Delta$ / MC'
+            self._add_plots_labels[pos] = '$\Delta$ / Exp.'
             self._add_plots_ref_line[pos] = 0.
             return self._Calc_diffratio_width_increase()
+        elif plot == 'Ratio_width_increase':
+            self._add_plots_labels[pos] = 'Data / Exp.'
+            self._add_plots_ref_line[pos] = 1.
+            return self._Calc_ratio_width_increase()
         elif plot == 'SoverSplusB':
             self._add_plots_labels[pos] = '$\mathdefault{\\frac{Signal}{\sqrt{Signal + MC}}}$'
             self._add_plots_ref_line[pos] = 0.
@@ -823,9 +827,15 @@ class plotter():
                 binning.append(ibin.x.high)
         else:
             binning.append(ibin.x.high)
-        diff=diff.rebinned(binning)
-        sum_hist=sum_hist.rebinned(binning)
-        _data_hist_local=self._data_hist.rebinned(binning)
+        if binning[0]!=sum_hist[1].x.low:
+            binning.insert(0,sum_hist[1].x.low)
+        try:
+            diff=diff.rebinned(binning)
+            sum_hist=sum_hist.rebinned(binning)
+            _data_hist_local=self._data_hist.rebinned(binning)
+        except:
+            print(binning)
+            _data_hist_local=self._data_hist.clone()
 
         diff.Add(sum_hist,-1)
         diff.Divide(sum_hist)
@@ -859,6 +869,78 @@ class plotter():
             y.append(np.array(y_i))
             err.append(np.array(err_i))
         return diff, x, y, err
+        
+    def _Calc_ratio_width_increase(self):
+
+        sum_hist = sum(self._hist)
+        ratio = self._data_hist.clone()
+
+        binning=[]
+        content=0.
+        if self._Style_cont._forceBinWidth:
+            minwidth=self._Style_cont._forceBinWidth
+        else:
+            minwidth=1.
+        for ibin in sum_hist.bins():
+            if (content+ibin.value*ibin.x.width/minwidth)<5:
+                content+=ibin.value*ibin.x.width/minwidth
+            else:
+
+                if  self._Style_cont.Get_xmax()==-1:
+                    binning.append(ibin.x.low)
+                elif self._Style_cont.Get_xmax()>ibin.x.low:
+                    binning.append(ibin.x.low)
+                else:
+                    break
+                content=0.
+        if self._Style_cont.Get_xmax() != -1:
+            if self._Style_cont.Get_xmax()<ibin.x.high:
+                binning.append(self._Style_cont.Get_xmax())
+            else:
+                binning.append(ibin.x.high)
+        else:
+            binning.append(ibin.x.high)
+        if binning[0]!=sum_hist[1].x.low:
+            binning.insert(0,sum_hist[1].x.low)
+        try:
+            ratio=ratio.rebinned(binning)
+            sum_hist=sum_hist.rebinned(binning)
+            _data_hist_local=self._data_hist.rebinned(binning)
+        except:
+            print(binning)
+            _data_hist_local=self._data_hist.clone()
+
+        ratio.Divide(sum_hist)
+        self.cleanUnwantedBins(ratio,[sum_hist,_data_hist_local])
+
+
+        x = []
+        y = []
+        err = []
+        for j in range(0,len(self._error_hist)):
+            x_i = []
+            y_i = []
+            err_i = []
+            for i in range(sum_hist.GetNbinsX()+1):
+                x_i.append(sum_hist.GetBinLowEdge(i))
+                x_i.append(sum_hist.GetBinLowEdge(i) + sum_hist.GetBinWidth(i))
+                if self._Style_cont.Get_error_bands_center() == 'ref':
+                    y_i.append(1.)
+                    y_i.append(1.)
+                elif self._Style_cont.Get_error_bands_center() == 'val':
+                    y_i.append(ratio.GetBinContent(i))
+                    y_i.append(ratio.GetBinContent(i))
+                if sum_hist.GetBinContent(i) > 0:
+                    err_i.append(_data_hist_local.GetBinContent(i) / sum_hist.GetBinContent(i) * self._error_hist[j].GetBinContent(self._error_hist[j].FindBin(sum_hist.GetBinCenter(i))))
+                    err_i.append(_data_hist_local.GetBinContent(i) / sum_hist.GetBinContent(i) * self._error_hist[j].GetBinContent(self._error_hist[j].FindBin(sum_hist.GetBinCenter(i))))
+                else:
+                    err_i.append(0)
+                    err_i.append(0)
+
+            x.append(np.array(x_i))
+            y.append(np.array(y_i))
+            err.append(np.array(err_i))
+        return ratio, x, y, err
 
     def _Calc_signi(self):
         sum_hist = self._hist[0].Clone('sum_hist')
@@ -1056,7 +1138,7 @@ class plotter():
     def _Draw_0(self):
         ## Plot a derived distribution on top of the main distribution on axis 0
         if self._add_plots[0] != '':
-            self._ax0 = plt.subplot2grid((100,1), (0,0), rowspan = self._hist_start, colspan=1, sharex = self._ax1, axisbg = self._Style_cont.Get_bg_color())
+            self._ax0 = plt.subplot2grid((100,1), (0,0), rowspan = self._hist_start, colspan=1, sharex = self._ax1, facecolor = self._Style_cont.Get_bg_color())
             self._ax0.spines['bottom'].set_color(self._Style_cont.Get_spine_color())
             self._ax0.spines['bottom'].set_linewidth(self._Style_cont.Get_spine_line_width())
             self._ax0.spines['top'].set_color(self._Style_cont.Get_spine_color())
@@ -1114,7 +1196,7 @@ class plotter():
         ## Create the figure for all subplots
         self._fig = plt.figure(figsize=(6, 6), dpi=100, facecolor=self._Style_cont.Get_bg_color())
         ## Create the subplot for the main distribution
-        self._ax1 = plt.subplot2grid((100,1), (self._hist_start,0), rowspan = self._hist_height, colspan = 1, axisbg = self._Style_cont.Get_bg_color())
+        self._ax1 = plt.subplot2grid((100,1), (self._hist_start,0), rowspan = self._hist_height, colspan = 1, facecolor = self._Style_cont.Get_bg_color())
         par1 = None
         if len(self._hist_axis) > 0:
             par1 = self._ax1.twinx()
@@ -1246,7 +1328,7 @@ class plotter():
             plt.xlabel(self._Style_cont.Get_xaxis_title(),
                        fontdict = self._Style_cont.Get_axis_title_font(),
                        va = 'top', ha = 'right')
-            self._ax1.xaxis.set_label_coords(1.,-0.04)
+            self._ax1.xaxis.set_label_coords(1.,-0.06)
         ## If defined show the minor tick marks
         if self._Style_cont.Get_show_minor_tick_labels():
             self._ax1.yaxis.set_minor_formatter(plt.FormatStrFormatter('%d'))
@@ -1278,7 +1360,7 @@ class plotter():
     def _Draw_2(self):
         ## Plot a derived distribution below the main distribution on axis 2
         if self._add_plots[1] != '':
-            self._ax2 = plt.subplot2grid((100,1), (self._hist_start + self._hist_height,0), rowspan = self._add_plots_height[1], colspan = 1, sharex = self._ax1, axisbg = self._Style_cont.Get_bg_color())
+            self._ax2 = plt.subplot2grid((100,1), (self._hist_start + self._hist_height,0), rowspan = self._add_plots_height[1], colspan = 1, sharex = self._ax1, facecolor = self._Style_cont.Get_bg_color())
             add_hist, x, y, err = self._Calc_additional_plot(self._add_plots[1],1)
             duke_errorbar(add_hist, xerr = self._Style_cont.Get_xerr(), emptybins = False, axes = self._ax2, yerr = self._Style_cont.Get_do_data_errors(),
                           markersize = self._Style_cont.Get_marker_size(),
@@ -1355,7 +1437,8 @@ class plotter():
                 plt.xlabel(self._Style_cont.Get_xaxis_title(),
                            fontdict = self._Style_cont.Get_axis_title_font(),
                            va = 'top', ha = 'right')
-                self._ax2.xaxis.set_label_coords(1.,-0.35*12./self._add_plots_height[1])
+                #self._ax2.xaxis.set_label_coords(1.,-0.35*12./self._add_plots_height[1])
+                self._ax2.xaxis.set_label_coords(1.,-0.5*12./self._add_plots_height[1])
             plt.setp(self._ax1.get_xticklabels(), visible = False)
             return None
         return None
@@ -1363,7 +1446,7 @@ class plotter():
     def _Draw_3(self):
         ## Plot a derived distribution at the very bottom of the main distribution on axis 3
         if self._add_plots[2] != '':
-            self._ax3 = plt.subplot2grid((100,1), (100 - self._add_plots_height[2],0), rowspan = self._add_plots_height[2], colspan = 1, sharex = self._ax1, axisbg = self._Style_cont.Get_bg_color())
+            self._ax3 = plt.subplot2grid((100,1), (100 - self._add_plots_height[2],0), rowspan = self._add_plots_height[2], colspan = 1, sharex = self._ax1, facecolor = self._Style_cont.Get_bg_color())
             add_hist, x, y, err = self._Calc_additional_plot(self._add_plots[2],2)
             duke_errorbar(add_hist, xerr = self._Style_cont.Get_xerr(), emptybins = False, axes = self._ax3, yerr = self._Style_cont.Get_do_data_errors(),
                           markersize = self._Style_cont.Get_marker_size(),
