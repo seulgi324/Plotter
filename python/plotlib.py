@@ -554,14 +554,14 @@ class HistStorage(object):
                 return ""
         t=""
         # this should cover all the usual cases, like [unit] /unit or *eV.
-        prossibleUnits=['[\[\(]\S*[\]\)]','/\S*\}','\SeV']
+        prossibleUnits=['\SeV','[\[\(]\S*[\]\)]','/\S*\}']
         for unit in prossibleUnits:
-            m = re.search(unit, xtitle)
-            if m != None:
+            m = re.findall(unit, xtitle)
+            if m != None or len(m)>0:
                 break
-        if m != None:
+        if m != None and len(m)>0:
             table = str.maketrans("", "", "[\[\(\]\)]/\}")
-            t=m.group(0).translate(table)
+            t=m[-1].translate(table)
         self.Unit=t
         return t
 

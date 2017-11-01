@@ -6,7 +6,7 @@ import matplotlib
 from matplotlib import rc
 from matplotlib import legend_handler
 
-matplotlib.use('Qt4Agg')
+#matplotlib.use('Qt4Agg')
 
 import ROOT
 import subprocess
@@ -250,7 +250,7 @@ class plotter():
     def show_fig(self):
         if not self._useRoot:
             self._fig.show()
-        input('hit any key to continue')
+        eval(input('hit any key to continue'))
 
     ## Function to save the complete plot
     #
@@ -859,8 +859,8 @@ class plotter():
                     y_i.append(diff.GetBinContent(i))
                     y_i.append(diff.GetBinContent(i))
                 if sum_hist.GetBinContent(i) > 0:
-                    err_i.append(_data_hist_local.GetBinContent(i) / sum_hist.GetBinContent(i) * self._error_hist[j].GetBinContent(self._error_hist[j].FindBin(sum_hist.GetBinCenter(i))))
-                    err_i.append(_data_hist_local.GetBinContent(i) / sum_hist.GetBinContent(i) * self._error_hist[j].GetBinContent(self._error_hist[j].FindBin(sum_hist.GetBinCenter(i))))
+                    err_i.append((_data_hist_local.GetBinContent(i)-sum_hist.GetBinContent(i)) / sum_hist.GetBinContent(i) * self._error_hist[j].GetBinContent(self._error_hist[j].FindBin(sum_hist.GetBinCenter(i))))
+                    err_i.append((_data_hist_local.GetBinContent(i)-sum_hist.GetBinContent(i)) / sum_hist.GetBinContent(i) * self._error_hist[j].GetBinContent(self._error_hist[j].FindBin(sum_hist.GetBinCenter(i))))
                 else:
                     err_i.append(0)
                     err_i.append(0)
@@ -1169,8 +1169,8 @@ class plotter():
             if self._Style_cont.Get_xmin() != -1 and self._Style_cont.Get_xmax() != -1:
                 self._ax0.set_xlim(xmin = self._Style_cont.Get_xmin(), xmax = self._Style_cont.Get_xmax())
                 # add_hist.GetXaxis().SetRangeUser(self._Style_cont.Get_xmin(),self._Style_cont.Get_xmax())
-            ymin=add_hist.min()*1.2 if add_hist.min()<0. else add_hist.min()*0.98
-            ymax=add_hist.max()*1.2 if add_hist.max()<0. else add_hist.max()*0.98
+            ymin=add_hist.min()*1.1
+            ymax=add_hist.max()*1.1
             if self._add_plots[0]=="Ratio":
                 if(self._add_plots_ymin):
                     ymin=self._add_plots_ymin
@@ -1182,9 +1182,15 @@ class plotter():
                     ymax=min(ymax,2.)
             self._ax0.set_ylim(ymin = ymin, ymax = ymax)
             self._ax0.axhline(self._add_plots_ref_line[0], color = self._Style_cont.Get_ref_line_color())
-            self._ax0.set_ylabel(self._add_plots_labels[0],
-                                 va='top', ha='left',
+            if int(matplotlib.__version__.replace(".",""))<152:
+                self._ax0.set_ylabel(self._add_plots_labels[0],
                                  fontdict = self._Style_cont.Get_axis_title_font(),
+                                 va='top', ha='left',
+                                 size = self._Style_cont.Get_axis_text_main_to_sub_ratio() * self._Style_cont.Get_axis_title_font()['size'])
+            else:
+                self._ax0.set_ylabel(self._add_plots_labels[0],
+                                 fontdict = self._Style_cont.Get_axis_title_font(),
+                                 va='top', ha='right',
                                  size = self._Style_cont.Get_axis_text_main_to_sub_ratio() * self._Style_cont.Get_axis_title_font()['size'])
             self._ax0.yaxis.set_label_coords(self._Style_cont.Get_y_label_offset(),1.)
             self._ax0.yaxis.set_major_locator(mticker.MaxNLocator(nbins=5, prune='lower'))
