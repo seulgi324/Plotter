@@ -3,10 +3,12 @@
 using namespace std;
 
 Normer::Normer() {
+  TH1::SetDefaultSumw2(true);
   
 }
 
 Normer::Normer(vector<string> values) {
+  TH1::SetDefaultSumw2(true);
   setValues(values);
   output = values[1];
   if(values.size() == 2) {
@@ -20,6 +22,7 @@ Normer::Normer(vector<string> values) {
 Normer::Normer(const Normer& other) :
   output(other.output), type(other.type), lumi(other.lumi), use(other.use)
 {
+  TH1::SetDefaultSumw2(true);
   input = other.input;
   skim = other.skim;
   xsec = other.xsec;
@@ -196,7 +199,7 @@ void Normer::MergeRootfile( TDirectory *target) {
     TObject *obj = key->ReadObj();
     if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
       TH1 *h1 = (TH1*)obj;
-      h1->Sumw2();
+      //h1->Sumw2();
 
       int spot = 0;
       double scale1 = (isData || xsec.at(spot) < 0) ? 1.0 : normFactor.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
@@ -226,7 +229,7 @@ void Normer::MergeRootfile( TDirectory *target) {
 	if (key2) {
 	  TH1 *h2 = (TH1*)key2->ReadObj();
 
-	  h2->Sumw2();
+	  //h2->Sumw2();
 	  // }
 	  double scale = (isData || xsec.at(spot) < 0) ? 1.0 : normFactor.at(spot) * xsec.at(spot)* lumi* skim.at(spot);
 	  scale *= SF.at(spot);

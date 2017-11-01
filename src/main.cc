@@ -7,7 +7,7 @@
 
 using namespace std;
 
-///// Read in config file that is used to find the files to normalize 
+///// Read in config file that is used to find the files to normalize
 /// and then put in the Plotter
 void read_info(string, map<string, Normer*>&);
 int getModTime(const char *path);
@@ -74,6 +74,7 @@ int main(int argc, char* argv[]) {
 
   int totalfiles = 0;
   for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); ++it) {
+    it->second->print();
     if(needToRenorm) it->second->setUse();
     fullPlot.addFile(*it->second);
   }
@@ -115,22 +116,25 @@ void read_info(string filename, map<string, Normer*>& plots) {
     tokenizer tokens(line, sep);
     stemp.clear();
     for(tokenizer::iterator iter = tokens.begin();iter != tokens.end(); iter++) {
-      if( ((*iter)[0] == '/' && (*iter)[0] == '/') || ((*iter)[0] == '#') ) break;
+      if( ((*iter)[0] == '/' && (*iter)[1] == '/') || ((*iter)[0] == '#') ) break;
       stemp.push_back(*iter);
-
     }
-
     if(stemp.size() >= 2) {
+      cout<<stemp[0]<<endl;
       if(stemp[0].find("lumi") != string::npos) lumi = stod(stemp[1]);
-      else if(stemp[0].find("output") != string::npos) output = stemp[1];
+      else if(stemp[0].find("output") != string::npos and stemp[0].find(".root") == string::npos) output = stemp[1];
       else if(stemp[0].find("style") != string::npos) stylename = stemp[1];
-      else if(plots.find(stemp[1]) == plots.end()) plots[stemp[1]] = new Normer(stemp);
-      else plots[stemp[1]]->setValues(stemp);
-    } 
+      else if(plots.find(stemp[1]) == plots.end()) {plots[stemp[1]] = new Normer(stemp);
+      }
+      else{
+	plots[stemp[1]]->setValues(stemp);
+      }
+    }
   }
   info_file.close();
 
   for(map<string, Normer*>::iterator it = plots.begin(); it != plots.end(); it++) {
+    it->second->print();
     it->second->setLumi(lumi);
   }
 }
