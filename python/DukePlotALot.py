@@ -1202,7 +1202,10 @@ class plotter():
         ## Create the figure for all subplots
         self._fig = plt.figure(figsize=(6, 6), dpi=100, facecolor=self._Style_cont.Get_bg_color())
         ## Create the subplot for the main distribution
-        self._ax1 = plt.subplot2grid((100,1), (self._hist_start,0), rowspan = self._hist_height, colspan = 1, facecolor = self._Style_cont.Get_bg_color())
+        if int(matplotlib.__version__.replace(".",""))>200:
+            self._ax1 = plt.subplot2grid((100,1), (self._hist_start,0), rowspan = self._hist_height, colspan = 1, facecolor = self._Style_cont.Get_bg_color())
+        else:
+            self._ax1 = plt.subplot2grid((100,1), (self._hist_start,0), rowspan = self._hist_height, colspan = 1, axisbg = self._Style_cont.Get_bg_color())
         par1 = None
         if len(self._hist_axis) > 0:
             par1 = self._ax1.twinx()
@@ -1366,7 +1369,10 @@ class plotter():
     def _Draw_2(self):
         ## Plot a derived distribution below the main distribution on axis 2
         if self._add_plots[1] != '':
-            self._ax2 = plt.subplot2grid((100,1), (self._hist_start + self._hist_height,0), rowspan = self._add_plots_height[1], colspan = 1, sharex = self._ax1, facecolor = self._Style_cont.Get_bg_color())
+            if int(matplotlib.__version__.replace(".",""))>200:
+                self._ax2 = plt.subplot2grid((100,1), (self._hist_start + self._hist_height,0), rowspan = self._add_plots_height[1], colspan = 1, sharex = self._ax1, facecolor = self._Style_cont.Get_bg_color())
+            else:
+                self._ax2 = plt.subplot2grid((100,1), (self._hist_start + self._hist_height,0), rowspan = self._add_plots_height[1], colspan = 1, sharex = self._ax1, axisbg = self._Style_cont.Get_bg_color())
             add_hist, x, y, err = self._Calc_additional_plot(self._add_plots[1],1)
             duke_errorbar(add_hist, xerr = self._Style_cont.Get_xerr(), emptybins = False, axes = self._ax2, yerr = self._Style_cont.Get_do_data_errors(),
                           markersize = self._Style_cont.Get_marker_size(),
@@ -1452,7 +1458,10 @@ class plotter():
     def _Draw_3(self):
         ## Plot a derived distribution at the very bottom of the main distribution on axis 3
         if self._add_plots[2] != '':
-            self._ax3 = plt.subplot2grid((100,1), (100 - self._add_plots_height[2],0), rowspan = self._add_plots_height[2], colspan = 1, sharex = self._ax1, facecolor = self._Style_cont.Get_bg_color())
+            if int(matplotlib.__version__.replace(".",""))>200:
+                self._ax3 = plt.subplot2grid((100,1), (100 - self._add_plots_height[2],0), rowspan = self._add_plots_height[2], colspan = 1, sharex = self._ax1, facecolor = self._Style_cont.Get_bg_color())
+            else:
+                self._ax3 = plt.subplot2grid((100,1), (100 - self._add_plots_height[2],0), rowspan = self._add_plots_height[2], colspan = 1, sharex = self._ax1, axisbg = self._Style_cont.Get_bg_color())
             add_hist, x, y, err = self._Calc_additional_plot(self._add_plots[2],2)
             duke_errorbar(add_hist, xerr = self._Style_cont.Get_xerr(), emptybins = False, axes = self._ax3, yerr = self._Style_cont.Get_do_data_errors(),
                           markersize = self._Style_cont.Get_marker_size(),

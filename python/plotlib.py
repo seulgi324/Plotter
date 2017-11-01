@@ -11,7 +11,7 @@ import logging; logging.basicConfig(level=logging.DEBUG)
 from rootpy import log
 from rootpy import asrootpy
 from rounding import rounding
-import re
+import re,sys
 from configobj import ConfigObj
 
 
@@ -560,8 +560,11 @@ class HistStorage(object):
             if m != None or len(m)>0:
                 break
         if m != None and len(m)>0:
-            table = str.maketrans("", "", "[\[\(\]\)]/\}")
-            t=m[-1].translate(table)
+            if sys.version_info[0]>=3:
+                table = str.maketrans("", "", "[\[\(\]\)]/\}")
+                t=m[-1].translate(table)
+            else:
+                t=m[-1].translate(None, "[\[\(\]\)]/\}")
         self.Unit=t
         return t
 
@@ -1009,8 +1012,11 @@ class HistStorage(object):
                         self.hists[key].xaxis.SetTitle("$\\mathrm{"+self.hists[key].xaxis.GetTitle().replace("#","\\")+"}$")
                         #self.hists[key].xaxis.SetTitle("${"+self.hists[key].xaxis.GetTitle().replace("#","\\")+"}$")
                 if self.isCumulative and ">" not in self.eventString:
-                    table = str.maketrans("", "", self._getUnit()+"[]/()")
-                    self.eventString+=">%s"%(self.hists[key].xaxis.GetTitle().translate(table))
+                    if sys.version_info[0]>=3:
+                        table = str.maketrans("", "", self._getUnit()+"[]/()")
+                        self.eventString+=">%s"%(self.hists[key].xaxis.GetTitle().translate(table))
+                    else:
+                        self.eventString+=">%s"%(self.hists[key].xaxis.GetTitle().translate(None,self._getUnit()+"[]/()"))
                 if self.forcedWidth is not False:
                     width=self.forcedWidth
                 else:
