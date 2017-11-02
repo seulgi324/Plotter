@@ -204,6 +204,7 @@ void Style::setStyle() {
     else if(it->first == "PadRatio") padratio = it->second;
     else if(it->first == "TopWSRatio") heightratio = it->second;
     else if(it->first == "RebinLimit") rebinlimit = it->second;
+    else if(it->first == "DoOverflow") dooverflow = it->second;
     else if(it->first == "DivideBins") dividebins = ((int)it->second != 0);
     else if(it->first == "BinLimit") binlimit = it->second;
   }
