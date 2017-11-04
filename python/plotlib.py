@@ -14,7 +14,7 @@ from rounding import rounding
 import re
 from configobj import ConfigObj
 
-#log.basic_config_colorized()
+log.basic_config_colorized()
 class NoDictMessagesFilter(logging.Filter):
     def filter(self, record):
         #return "is not an exact divider of nbins=" not in record.msg

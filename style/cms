@@ -1,7 +1,7 @@
 PadRatio    3
 TopWSRatio  15  
-RebinLimit  0.3
-DivideBins  0
+RebinLimit   999.5
+DivideBins  1
 BinLimit   9
 
 OptStat  0 
@@ -11,7 +11,7 @@ LabelOffset 0.007
 LabelFont 42
 LabelSize   0.035
 
-LegendBorderSize
+LegendBorderSize 0
 LegendFillColor
 LegendFont 42
 LegendTextSize 0.005
@@ -33,8 +33,8 @@ PadLeftMargin 0.08
 PadRightMargin 0.05
 PadGridX 0
 PadGridY 0
-PadTickX 1
-PadTickY 1
+PadTickX 0
+PadTickY 0
  
 FrameBorderMode 0
 

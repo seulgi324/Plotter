@@ -39,7 +39,7 @@ about the graph are more important.
 #include <TF1.h>
 #include <TStyle.h>
 #include <TROOT.h>
-
+#include <cmath>
 #include <vector>
 #include <time.h>
 #include <sys/stat.h>
@@ -84,9 +84,15 @@ class Plotter {
  private:
   TList* FileList[3] = {new TList(), new TList(), new TList()};
   Style styler;
-  int color[10] = {100, 90, 80, 70, 60, 95, 85, 75, 65, 55};
-  
-  bool ssqrtsb = true, onlyTop = false;
+  // int color[9] = {100, 90, 80, 70, 60, 50, 40, 30, 20};
+
+  //   int color[17] = {kRed, 51, kMagenta, kYellow, kGreen, kCyan, kRed-9, kYellow-10, kGreen+2, kCyan-10, kBlue-4, kViolet, kMagenta-10,  kBlack, kOrange+6, kPink-8, kGray+1 };  
+  //int color[9] = {kRed, 51, kMagenta, kYellow, kGreen, kCyan, kRed-9, kYellow-10, kGreen+2};
+  //int color[9] = {kRed, kBlue, kOrange+6, kYellow, kGreen, kCyan, kWhite, kPink-8, kMagenta};
+
+ int color[9] = {kBlue-9, 432-9, 23, kOrange+6, kRed-7, kYellow-9, kGreen-10, kPink-8, kMagenta};
+ 
+ bool ssqrtsb = true, onlyTop = false;
   Bottom bottomType = Ratio;
   static unordered_map<string, string> latexer;
 
