@@ -77,7 +77,13 @@ def main():
         #for data directly add the file
         if info["type"]=="data":
             dat_hist.addFile(sample)
-
+    for bg in bglist:
+        print("bglist['%s']=["%(bg))
+        for ibg in bglist[bg]:
+            print("'ibg',")
+        print("]")
+        
+    
     #now actually add the backgrounds
     bghists.addFileList(bglist)
     bghists.colorList=colorList

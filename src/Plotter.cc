@@ -27,6 +27,8 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
   TList* sglist = FileList[2];
 
   bool noData = datalist->GetSize() == 0;
+  
+  bool do_overflow = styler.getDoOverflow();
 
   if(!onlyTop && noData) {
     if(sglist->GetSize() == 0) onlyTop = true;
@@ -233,7 +235,7 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 
       /// Check if rebin vector is in decending order (sometimes didn't happen??)
       /// then puts into a double array in increasing order for Rebin function
-      double* binner = new double[bins.size()];
+      double* binner = new double[bins.size()+1];
       bool passed = true;
 
       binner[0] = bins.back();
@@ -252,6 +254,43 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       /// hs instead of hsdraw so many times...
       THStack* hsdraw = hs;
       if(passed && bins.size() > styler.getBinLimit()) {
+	double lastbin_data,lastbin_data_error;
+	double lastbin_error,lastbin_error_error;
+	vector<double> lastbin_bg,lastbin_bg_error;
+	vector<double> lastbin_sg,lastbin_sg_error;
+	if(do_overflow){
+	  
+	  double last_bin_x=binner[bins.size()-1];
+	  
+	  int last_bin=datahist->FindBin(last_bin_x)-1;
+	  double last_width=(last_bin_x - binner[(bins.size()-2)])/2;
+	  binner[bins.size()]=binner[(bins.size()-1)]+last_width;
+	  //bins.push_back(bins.at(bins.size()-1)+last_width);
+	  
+	  lastbin_data=datahist->IntegralAndError(last_bin,datahist->GetNbinsX()+1,lastbin_data_error);
+	  
+	  lastbin_error=datahist->IntegralAndError(last_bin,datahist->GetNbinsX()+1,lastbin_error_error);
+	  
+	  TList* list = (TList*)hs->GetHists();
+	  TH1D* tmp = (TH1D*)list->First();
+	  while ( tmp ) {
+	    double lastbin_tmp,lastbin_tmp_error;
+	    lastbin_tmp=tmp->IntegralAndError(last_bin,tmp->GetNbinsX()+1,lastbin_tmp_error);
+	    lastbin_bg.push_back(lastbin_tmp);
+	    lastbin_bg_error.push_back(lastbin_tmp_error);
+	    tmp = (TH1D*)list->After(tmp);
+	  }
+	  
+	  tmp = (TH1D*)sigHists->First();
+	  while ( tmp ) {
+	    double lastbin_tmp,lastbin_tmp_error;
+	    lastbin_tmp=tmp->IntegralAndError(last_bin,tmp->GetNbinsX()+1,lastbin_tmp_error);
+	    lastbin_sg.push_back(lastbin_tmp);
+	    lastbin_sg_error.push_back(lastbin_tmp_error);
+	    tmp = (TH1D*)sigHists->After(tmp);
+	  }
+	  
+	}
 	datahist = (TH1D*)datahist->Rebin(bins.size()-1, "data_rebin", binner);
       	error = (TH1D*)error->Rebin(bins.size()-1, "error_rebin", binner);
       	hsdraw = rebinStack(hs, binner, bins.size()-1);
@@ -261,6 +300,32 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       	  tmplist->Add(onesig->Rebin(bins.size()-1, onesig->GetName(), binner));
       	  onesig = (TH1D*)sigHists->After(onesig);
       	}
+	if(do_overflow){
+	  int last_bin=datahist->GetNbinsX();
+	  datahist->SetBinContent(last_bin,lastbin_data);
+	  datahist->SetBinError(last_bin,lastbin_data_error);
+	  
+	  error->SetBinContent(last_bin,lastbin_error);
+	  error->SetBinError(last_bin,lastbin_error_error);
+	  
+	  TList* list = (TList*)hsdraw->GetHists();
+	  TH1D* tmp = (TH1D*)list->First();
+	  int i=0;
+	  while ( tmp ) {
+	    tmp->SetBinContent(last_bin,lastbin_bg.at(i));
+	    tmp->SetBinError(last_bin,lastbin_bg_error.at(i));
+	    tmp = (TH1D*)list->After(tmp);
+	    i++;
+	  }
+	  
+	  tmp = (TH1D*)sigHists->First();
+	  while ( tmp ) {
+	    tmp->SetBinContent(last_bin,lastbin_sg.at(i));
+	    tmp->SetBinError(last_bin,lastbin_sg_error.at(i));
+	    tmp = (TH1D*)sigHists->After(tmp);
+	  }
+	  
+	}
       	delete sigHists;
       	sigHists = tmplist;
       }
@@ -305,7 +370,15 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 	hsdraw->GetXaxis()->SetTitle(newLabel(hsdraw->GetTitle()).c_str());
 	hsdraw->GetXaxis()->SetTitleSize(hsdraw->GetYaxis()->GetLabelSize());
       }
-
+      if(do_overflow){
+        latex.SetNDC();
+        latex.SetTextAngle(90);
+        latex.SetTextColor(kBlack);
+        latex.SetTextFont(43);
+        latex.SetTextAlign(31);
+        latex.SetTextSize(16);
+        latex.DrawLatex(0.97,0.3,"Overflow");
+      }
 
       // ///second pad
       TF1* PrevFitTMP = NULL;

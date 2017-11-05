@@ -32,6 +32,7 @@ about the graph are more important.
 #include <TChain.h>
 #include <TCanvas.h>
 #include <TText.h>
+#include <TLatex.h>
 #include <THStack.h>
 #include <TPaveText.h>
 #include <TGraphErrors.h>
@@ -84,6 +85,7 @@ class Plotter {
  private:
   TList* FileList[3] = {new TList(), new TList(), new TList()};
   Style styler;
+  TLatex latex;
   int color[10] = {100, 90, 80, 70, 60, 95, 85, 75, 65, 55};
   
   bool ssqrtsb = true, onlyTop = false;
