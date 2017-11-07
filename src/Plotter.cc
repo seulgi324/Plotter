@@ -2,6 +2,8 @@
 #include "Plotter.h"
 #include <iostream>     // std::cout, std::ios
 #include <string>
+#include <sstream>
+#include <typeinfo>
 using namespace std;
 
 ///// macro to save space.  Tests if name is in latex map, if not, it just uses the name given
@@ -667,32 +669,55 @@ TList* Plotter::signalBottom(const TList* signal, const TH1D* data, const TH1D* 
 
 // Sets the graph so the maximum is seen (else if data is too tall, might not show up)
 /// Need to add in signal stuff to this as well
+
+
+
 void Plotter::setYAxisTop(TH1* datahist, TH1* error, double ratio, THStack* hs) {
   TAxis* yaxis = hs->GetYaxis();
-  std::string y_title_name;
+  std::string y_title_name, x_axis_name, t;
+
+  if(newLabel(hs->GetTitle()).find("GeV") != std::string::npos) {
+    x_axis_name = "GeV";
+  }
+
+  else {
+    x_axis_name = "";
+  }
+  t = x_axis_name.c_str();
+  
   //when Divide bin option and fixed bin size option is given
   if(styler.getDivideBins() && styler.getRebinLimit() >1.0) {
-   double bin_width = datahist->GetBinWidth(1);
-   double nearest= round(bin_width * 100) / 100;
-   std::string s = std::to_string(nearest);
-   
-   std::string temp;
-   std::size_t loc = s.find('.');
-   s.erase (loc+3,4);//son 4. karakteri sil noktodan sonraki dahil olmak uzere
-     if (s[s.length()-1] == '0' && s[s.length()-2] == '0'){
+    double bin_width = datahist->GetBinWidth(1);
+    double nearest= round(bin_width * 100) / 100;
+    std::string s = std::to_string(nearest);
+    std::string temp;
+    std::size_t loc = s.find('.');
+    
+    s.erase (loc+3,4);
+
+    if (s[s.length()-1] == '0' && s[s.length()-2] == '0'){
       s.erase(loc,3);
       temp=s.c_str();
-      y_title_name = "Events/"+temp+" GeV";
-     }  
+     
+      y_title_name = "Events/"+temp+" "+t;
+    }  
     else {
-        y_title_name = "Events/"+s+" GeV";
+      y_title_name = "Events/"+s+" "+t;
     }
-   yaxis->SetTitle(y_title_name.c_str());
-   s.clear();
+    yaxis->SetTitle(y_title_name.c_str());
+    s.clear();
   }
-  
+   //when Divide bin option and auto bin size option is given
   else if(styler.getDivideBins() && styler.getRebinLimit() < 1.0) {
-    y_title_name = "Events/GeV";
+    if(t=="GeV") {
+      y_title_name = "Events/"+t;    
+    }
+    
+    
+    else {
+      y_title_name = "Events";
+    }
+    
     yaxis->SetTitle(y_title_name.c_str());
   }
   
