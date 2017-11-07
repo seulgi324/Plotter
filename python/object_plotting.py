@@ -12,7 +12,7 @@ import matplotlib.ticker as mticker
 import rootpy.plotting.root2matplotlib as rplt
 
 def plot_upper_cut(axis1, value, cut_arrow_position = 0.5):
-    print('will now plot an upper cut marker at %f'%value)
+    print(('will now plot an upper cut marker at %f'%value))
 
     cut_color = 'y'
     cut_level = 4
@@ -27,7 +27,7 @@ def plot_upper_cut(axis1, value, cut_arrow_position = 0.5):
     axis1.arrow((value - xmin) / width, cut_arrow_position, -0.02, 0, head_width = 0.1, head_length = 0.02, fc = cut_color, ec = cut_color, zorder = cut_level, linewidth = 2, transform = axis1.transAxes)
 
 def plot_lower_cut(axis1, value, cut_arrow_position = 0.5):
-    print('will now plot an lower cut marker at %f'%value)
+    print(('will now plot an lower cut marker at %f'%value))
 
     cut_color = 'y'
     cut_level = 4
@@ -61,7 +61,7 @@ def gaussian(x, norm, mu, sig):
     return norm * np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
 def plot_gauss_fit(axis1, histo, xmin = 0, xmax = 0, color = 'black', write_results = False):
-    print('Now fitting a gaus to %s and plotting it'%histo.GetTitle())
+    print(('Now fitting a gaus to %s and plotting it'%histo.GetTitle()))
     if xmin == 0 and xmax == 0:
         xmin, xmax = axis1.get_xlim()
 
@@ -70,23 +70,23 @@ def plot_gauss_fit(axis1, histo, xmin = 0, xmax = 0, color = 'black', write_resu
         dummy = fit_res.Parameter(0)
     except rootpy.ROOTError as bla:
         print('\n\terror in the Chi2 fitting: ')
-        print('\t'+str(bla))
+        print(('\t'+str(bla)))
         print('\ttrying again with binned likelihood method\n')
         try:
             fit_res = histo.Fit('gaus', 'WLN0S', '', xmin, xmax)
             dummy = fit_res.Parameter(0)
         except rootpy.ROOTError as bla:
             print('\n\terror in the binned likelihood fitting: ')
-            print('\t' + str(bla))
+            print(('\t' + str(bla)))
             print('\tThis doesn\'t seem to work either, I think you have to fix something!\n')
             sys.exit(42)
         except:
             print('An unexpected error occured in the binned likelihood fitting:')
-            print(sys.exc_info()[0], sys.exc_info()[1])
+            print((sys.exc_info()[0], sys.exc_info()[1]))
             sys.exit(42)
     except:
         print('An unexpected error occured in the Chi2 fitting:')
-        print(sys.exc_info()[0], sys.exc_info()[1])
+        print((sys.exc_info()[0], sys.exc_info()[1]))
         sys.exit(42)
 
     x = np.linspace(xmin, xmax, num = 500)
@@ -123,7 +123,7 @@ def eff_function_3(x, par):
     return val
 
 def plot_efficiency_fit(axis1, histo, xmin = 0, xmax = 0, startvals = [], plottrange = [], color = 'black', addtext = '', textcoords = [2300,0.25]):
-    print('Now fitting a efficiency curve to %s and plotting it'%histo.GetTitle())
+    print(('Now fitting a efficiency curve to %s and plotting it'%histo.GetTitle()))
     if xmin == 0 and xmax == 0:
         xmin, xmax = axis1.get_xlim()
 
@@ -158,26 +158,26 @@ def plot_efficiency_fit(axis1, histo, xmin = 0, xmax = 0, startvals = [], plottr
         dummy = fit_res.Parameter(0)
     except rootpy.ROOTError as bla:
         print('\n\terror in the Chi2 fitting: ')
-        print('\t'+str(bla))
+        print(('\t'+str(bla)))
         print('\ttrying again with binned likelihood method\n')
         try:
             fit_res = histo.Fit(func, 'WLN0S', '', xmin, xmax)
             dummy = fit_res.Parameter(0)
         except rootpy.ROOTError as bla:
             print('\n\terror in the binned likelihood fitting: ')
-            print('\t' + str(bla))
+            print(('\t' + str(bla)))
             print('\tThis doesn\'t seem to work either, I think you have to fix something!\n')
             sys.exit(42)
         except:
             print('An unexpected error occured in the binned likelihood fitting:')
-            print(sys.exc_info()[0], sys.exc_info()[1])
+            print((sys.exc_info()[0], sys.exc_info()[1]))
             sys.exit(42)
     except:
         print('An unexpected error occured in the Chi2 fitting:')
-        print(sys.exc_info()[0], sys.exc_info()[1])
+        print((sys.exc_info()[0], sys.exc_info()[1]))
         sys.exit(42)
 
-    print('Chi2/Ndf: %.2f/%.0f = %.2f'%(fit_res.Chi2(),fit_res.Ndf(),fit_res.Chi2()/fit_res.Ndf()))
+    print(('Chi2/Ndf: %.2f/%.0f = %.2f'%(fit_res.Chi2(),fit_res.Ndf(),fit_res.Chi2()/fit_res.Ndf())))
 
     if plottrange != []:
         x = np.linspace(plottrange[0], plottrange[1])
@@ -244,7 +244,7 @@ def res_function(x, par):
     return par[0] + par[1] * x[0] + par[2] * x[0] * x[0] + par[3] * x[0] * x[0] * x[0]
 
 def plot_resolution_fit(axis1, histo, xmin = 0, xmax = 0, startvals = [], plottrange = [], color = 'black', addtext = '', textcoords = [1500, 0.005]):
-    print('Now fitting a resolution curve to %s and plotting it'%histo.GetTitle())
+    print(('Now fitting a resolution curve to %s and plotting it'%histo.GetTitle()))
     if xmin == 0 and xmax == 0:
         xmin, xmax = axis1.get_xlim()
 
@@ -261,26 +261,26 @@ def plot_resolution_fit(axis1, histo, xmin = 0, xmax = 0, startvals = [], plottr
         dummy = fit_res.Parameter(0)
     except rootpy.ROOTError as bla:
         print('\n\terror in the Chi2 fitting: ')
-        print('\t'+str(bla))
+        print(('\t'+str(bla)))
         print('\ttrying again with binned likelihood method\n')
         try:
             fit_res = histo.Fit(func, 'WLN0S', '', xmin, xmax)
             dummy = fit_res.Parameter(0)
         except rootpy.ROOTError as bla:
             print('\n\terror in the binned likelihood fitting: ')
-            print('\t' + str(bla))
+            print(('\t' + str(bla)))
             print('\tThis doesn\'t seem to work either, I think you have to fix something!\n')
             sys.exit(42)
         except:
             print('An unexpected error occured in the binned likelihood fitting:')
-            print(sys.exc_info()[0], sys.exc_info()[1])
+            print((sys.exc_info()[0], sys.exc_info()[1]))
             sys.exit(42)
     except:
         print('An unexpected error occured in the Chi2 fitting:')
-        print(sys.exc_info()[0], sys.exc_info()[1])
+        print((sys.exc_info()[0], sys.exc_info()[1]))
         sys.exit(42)
 
-    print('Chi2/Ndf: %.2f/%.0f = %.2f'%(fit_res.Chi2(),fit_res.Ndf(),fit_res.Chi2()/fit_res.Ndf()))
+    print(('Chi2/Ndf: %.2f/%.0f = %.2f'%(fit_res.Chi2(),fit_res.Ndf(),fit_res.Chi2()/fit_res.Ndf())))
 
     if plottrange != []:
         x = np.linspace(plottrange[0], plottrange[1])

@@ -70,13 +70,14 @@ class Style {
   double getRebinLimit() {return rebinlimit;}
   bool getDivideBins() {return dividebins;}
   bool getBinLimit() {return binlimit;}
+  bool getDoOverflow() {return dooverflow;}
  
  private:
   TStyle* styler;
   map<string, double> values;
   //  map<string,string> axisLabel = { {} }
   int binlimit = 9;
-  double padratio = 3, heightratio = 15, rebinlimit = 0.3;
+  double padratio = 3, heightratio = 15, rebinlimit = 0.3, dooverflow= 0;
   bool dividebins = false;
 };
 

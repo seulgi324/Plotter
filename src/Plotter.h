@@ -4,11 +4,11 @@
 
 /*
 
-Beef of the Plotter code; this takes in all of the 
-normalized histograms, puts them into a canvas and formats 
+Beef of the Plotter code; this takes in all of the
+normalized histograms, puts them into a canvas and formats
 them all together to look nice.  Most of the functions are for
 aesthetics, so to change the look of the graphs, change the Plotter
-Functions.  Is a little cumbersome and could use more work into 
+Functions.  Is a little cumbersome and could use more work into
 putting more ability into the style config files/options.
 
 Current state is still work in progress, but does make nice graphs
@@ -32,6 +32,7 @@ about the graph are more important.
 #include <TChain.h>
 #include <TCanvas.h>
 #include <TText.h>
+#include <TLatex.h>
 #include <THStack.h>
 #include <TPaveText.h>
 #include <TGraphErrors.h>
@@ -86,12 +87,12 @@ class Plotter {
   Style styler;
   // int color[9] = {100, 90, 80, 70, 60, 50, 40, 30, 20};
 
-  //   int color[17] = {kRed, 51, kMagenta, kYellow, kGreen, kCyan, kRed-9, kYellow-10, kGreen+2, kCyan-10, kBlue-4, kViolet, kMagenta-10,  kBlack, kOrange+6, kPink-8, kGray+1 };  
+  //   int color[17] = {kRed, 51, kMagenta, kYellow, kGreen, kCyan, kRed-9, kYellow-10, kGreen+2, kCyan-10, kBlue-4, kViolet, kMagenta-10,  kBlack, kOrange+6, kPink-8, kGray+1 };
   //int color[9] = {kRed, 51, kMagenta, kYellow, kGreen, kCyan, kRed-9, kYellow-10, kGreen+2};
   //int color[9] = {kRed, kBlue, kOrange+6, kYellow, kGreen, kCyan, kWhite, kPink-8, kMagenta};
 
  int color[9] = {kBlue-9, 432-9, 23, kOrange+6, kRed-7, kYellow-9, kGreen-10, kPink-8, kMagenta};
- 
+
  bool ssqrtsb = true, onlyTop = false;
   Bottom bottomType = Ratio;
   static unordered_map<string, string> latexer;
