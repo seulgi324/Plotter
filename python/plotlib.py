@@ -1,7 +1,7 @@
+#!/bin/env python
 
-from rootpy.plotting import Hist,Hist2D
-from rootpy.plotting.views import ScaleView,StyleView
-import matplotlib.pyplot as plt
+#from rootpy.plotting import Hist,Hist2D
+#from rootpy.plotting.views import ScaleView,StyleView
 from rootpy.io import File
 try:
     from collections import OrderedDict
@@ -88,6 +88,7 @@ def duke_errorbar(hists,
              axes=None,
              ignore_binns=None,
              **kwargs):
+    import matplotlib.pyplot as plt
     from rootpy.plotting.hist import _Hist
     from rootpy.plotting.graph import _Graph1DBase
     from rootpy.plotting.root2matplotlib import _set_bounds
@@ -572,6 +573,7 @@ class HistStorage(object):
     #
     # The scaled view dict "views" now retruns all histograms scaled!
     def _addToScaledView(self):
+        from rootpy.plotting.views import ScaleView
         for name in self.files:
             if name in self.views:
                 continue
@@ -774,6 +776,7 @@ class HistStorage(object):
     # the hists are added to .hists and joined if a joinList exist
     # @param[in] hist string of the hist in the files
     def getHist(self, hist, backupHist = None, noScale = False):
+        from rootpy.plotting import Hist
         self.clearHists()
         for f in self.views:
             try:
@@ -808,6 +811,8 @@ class HistStorage(object):
     # the hists ate added to .hists and joined if a joinList exist
     # @param[in] hist string of the hist in the files
     def getHistFromTree(self,bins,xmin,xmax,xtitle,cut,value,tree,weight=None):
+        from rootpy.plotting import Hist
+        import random,string,os
         self.clearHists()
         for f in self.files:
             try:
@@ -825,12 +830,14 @@ class HistStorage(object):
                     _tree.Draw(value,selection=cut,hist=self.hists[f])
                 else:
                     #_tree.Draw(value,selection="(%s)*(%s)"%(cut,weight),hist=self.hists[f])
-                    tmpFile=File("/tmp/tmp.root", "recreate")
+                    tmpFileName=''.join(random.choice(string.ascii_lowercase) for i in range(4))
+                    tmpFile=File("/tmp/%s.root"%tmpFileName, "recreate")
                     #sel_tree=_tree.copy_tree(selection=cut)
                     sel_tree=asrootpy(_tree.CopyTree(cut))
                     ##print weight
                     sel_tree.Draw(value,selection=weight,hist=self.hists[f])
                     tmpFile.Close()
+                    os.remove("/tmp/%s.root"%tmpFileName)
             except Exception as e:
                 log_plotlib.info( "error:%s"%(e))
                 log_plotlib.info( "file :%s"%(f))
@@ -852,6 +859,7 @@ class HistStorage(object):
     # the hists ate added to .hists and joined if a joinList exist
     # @param[in] hist string of the hist in the files
     def getHistFromTree2d(self,xbins,xmin,xmax,xtitle,ybins,ymin,ymax,ytitle,cut,value,tree,weight=None):
+        from rootpy.plotting import Hist,Hist2D
         self.clearHists()
         for f in self.files:
             try:
