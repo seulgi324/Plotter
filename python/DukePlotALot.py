@@ -1169,8 +1169,12 @@ class plotter():
             if self._Style_cont.Get_xmin() != -1 and self._Style_cont.Get_xmax() != -1:
                 self._ax0.set_xlim(xmin = self._Style_cont.Get_xmin(), xmax = self._Style_cont.Get_xmax())
                 # add_hist.GetXaxis().SetRangeUser(self._Style_cont.Get_xmin(),self._Style_cont.Get_xmax())
-            ymin=add_hist.min()*1.1
-            ymax=add_hist.max()*1.1
+            try:
+                ymin=add_hist.min()*1.2 if abs(add_hist.min())>1. else add_hist.min()*0.98
+                ymax=add_hist.max()*1.2 if abs(add_hist.max())>1. else add_hist.max()*0.98
+            except:
+                ymin=0.0
+                ymax=2.0
             if self._add_plots[0]=="Ratio":
                 if(self._add_plots_ymin):
                     ymin=self._add_plots_ymin
@@ -1392,8 +1396,8 @@ class plotter():
                 self._ax2.set_xlim(xmin = self._Style_cont.Get_xmin(), xmax = self._Style_cont.Get_xmax())
                 # add_hist.GetXaxis().SetRangeUser(self._Style_cont.Get_xmin(),self._Style_cont.Get_xmax())
             try:
-                ymin=add_hist.min()*1.2 if add_hist.min()<0. else add_hist.min()*0.98
-                ymax=add_hist.max()*1.2 if add_hist.max()<0. else add_hist.max()*0.98
+                ymin=add_hist.min()*1.2 if abs(add_hist.min())>1. else add_hist.min()*0.98
+                ymax=add_hist.max()*1.2 if abs(add_hist.max())>1. else add_hist.max()*0.98
             except:
                 ymin=0.0
                 ymax=2.0
@@ -1481,8 +1485,8 @@ class plotter():
                 self._ax3.set_xlim(xmin = self._Style_cont.Get_xmin(), xmax = self._Style_cont.Get_xmax())
                 # add_hist.GetXaxis().SetRangeUser(self._Style_cont.Get_xmin(),self._Style_cont.Get_xmax())
             try:
-                ymin=add_hist.min()*1.2 if add_hist.min()<0. else add_hist.min()*0.98
-                ymax=add_hist.max()*1.2 if add_hist.max()<0. else add_hist.max()*0.98
+                ymin=add_hist.min()*1.2 if abs(add_hist.min())>1. else add_hist.min()*0.98
+                ymax=add_hist.max()*1.2 if abs(add_hist.max())>1. else add_hist.max()*0.98
             except:
                 ymin=0.0
                 ymax=2.0
