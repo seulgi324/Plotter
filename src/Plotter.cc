@@ -266,32 +266,32 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       	  tmplist->Add(onesig->Rebin(bins.size()-1, onesig->GetName(), binner));
       	  onesig = (TH1D*)sigHists->After(onesig);
       	}
-	if(do_overflow){
-	  int last_bin=datahist->GetNbinsX();
-	  datahist->SetBinContent(last_bin,lastbin_data);
-	  datahist->SetBinError(last_bin,lastbin_data_error);
+	//if(do_overflow){
+	  //int last_bin=datahist->GetNbinsX();
+	  //datahist->SetBinContent(last_bin,datahist->GetBinContent(last_bin+1));
+	  //datahist->SetBinError(last_bin,datahist->GetBinError(last_bin+1));
 
-	  error->SetBinContent(last_bin,lastbin_error);
-	  error->SetBinError(last_bin,lastbin_error_error);
+	  //error->SetBinContent(last_bin,datahist->GetBinError(last_bin+1));
+	  //error->SetBinError(last_bin,lastbin_error_error);
 
-	  TList* list = (TList*)hsdraw->GetHists();
-	  TH1D* tmp = (TH1D*)list->First();
-	  int i=0;
-	  while ( tmp ) {
-	    tmp->SetBinContent(last_bin,lastbin_bg.at(i));
-	    tmp->SetBinError(last_bin,lastbin_bg_error.at(i));
-	    tmp = (TH1D*)list->After(tmp);
-	    i++;
-	  }
+	  //TList* list = (TList*)hsdraw->GetHists();
+	  //TH1D* tmp = (TH1D*)list->First();
+	  //int i=0;
+	  //while ( tmp ) {
+	    //tmp->SetBinContent(last_bin,lastbin_bg.at(i));
+	    //tmp->SetBinError(last_bin,lastbin_bg_error.at(i));
+	    //tmp = (TH1D*)list->After(tmp);
+	    //i++;
+	  //}
 
-	  tmp = (TH1D*)sigHists->First();
-	  while ( tmp ) {
-	    tmp->SetBinContent(last_bin,lastbin_sg.at(i));
-	    tmp->SetBinError(last_bin,lastbin_sg_error.at(i));
-	    tmp = (TH1D*)sigHists->After(tmp);
-	  }
+	  //tmp = (TH1D*)sigHists->First();
+	  //while ( tmp ) {
+	    //tmp->SetBinContent(last_bin,lastbin_sg.at(i));
+	    //tmp->SetBinError(last_bin,lastbin_sg_error.at(i));
+	    //tmp = (TH1D*)sigHists->After(tmp);
+	  //}
 
-	}
+	//}
       	delete sigHists;
       	sigHists = tmplist;
         divideBin(datahist, error, hsdraw, sigHists);
@@ -363,13 +363,13 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
 	hsdraw->GetXaxis()->SetTitleSize(hsdraw->GetYaxis()->GetLabelSize());
       }
       if(do_overflow){
-        latex.SetNDC();
-        latex.SetTextAngle(90);
-        latex.SetTextColor(kBlack);
-        latex.SetTextFont(43);
-        latex.SetTextAlign(31);
-        latex.SetTextSize(16);
-        latex.DrawLatex(0.97,0.3,"Overflow");
+        //latex.SetNDC();
+        //latex.SetTextAngle(90);
+        //latex.SetTextColor(kBlack);
+        //latex.SetTextFont(43);
+        //latex.SetTextAlign(31);
+        //latex.SetTextSize(16);
+        //latex.DrawLatex(0.97,0.3,"Overflow");
       }
 
       // ///second pad
