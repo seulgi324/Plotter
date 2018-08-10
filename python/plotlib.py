@@ -336,6 +336,38 @@ def makeTeXTable(dir_name,hist,histContainer):
 """
     mtBinOutTeX.write(tail)
     mtBinOutTeX.close()
+    
+def parallelTreeWorker(item):
+    import random,string,os
+    filename,_tree,value,cut,_hist,weight,f=item
+    rfile=File(filename)
+    tree=rfile.Get(_tree)
+    tree=asrootpy(tree)
+    _hist=asrootpy(_hist)
+    try:
+        if weight is None:
+            tree.Draw(value,selection=cut,hist=_hist)
+        else:
+            #_tree.Draw(value,selection="(%s)*(%s)"%(cut,weight),hist=self.hists[f])
+            tmpFileName=''.join(random.choice(string.ascii_lowercase) for i in range(4))
+            tmpFile=File("/tmp/%s.root"%tmpFileName, "recreate")
+            #sel_tree=_tree.copy_tree(selection=cut)
+            sel_tree=asrootpy(tree.CopyTree(cut))
+            ##print weight
+            sel_tree.Draw(value,selection=weight,hist=_hist)
+            tmpFile.Close()
+            os.remove("/tmp/%s.root"%tmpFileName)
+    except Exception as e:
+        print(tree,value,cut,_hist,weight,f)
+        log_plotlib.info( "error:%s"%(e))
+        log_plotlib.info( "file :%s"%(f))
+        log_plotlib.info( "Perhaps try this one:")
+        for i in tree.glob("*"):
+            log_plotlib.info( i)
+        raise RuntimeError("Will stop here!")
+    rfile.Close()
+    del(tree)
+    return (_hist,f)
 
 ##@class HistSorageContainer Class to handle data, bg and sg HistStorages
 #
@@ -381,6 +413,10 @@ class HistStorageContainer():
     def getHistFromTree(self,binns,xmin,xmax,xtitle,cut,value,tree,weight=None):
         for stored in self.allStored:
             stored.getHistFromTree(binns,xmin,xmax,xtitle,cut,value,tree,weight=weight)
+
+    def getHistFromTreeParallel(self,binns,xmin,xmax,xtitle,cut,value,tree,weight=None):
+        for stored in self.allStored:
+            stored.getHistFromTreeParallel(binns,xmin,xmax,xtitle,cut,value,tree,weight=weight)
 
 
     def getHistFromTree2d(self,xbinns,xmin,xmax,xtitle,ybins,ymin,ymax,ytitle,cut,value,tree,weight=None):
@@ -776,7 +812,6 @@ class HistStorage(object):
     # the hists are added to .hists and joined if a joinList exist
     # @param[in] hist string of the hist in the files
     def getHist(self, hist, backupHist = None, noScale = False):
-        from rootpy.plotting import Hist
         self.clearHists()
         for f in self.views:
             try:
@@ -796,6 +831,7 @@ class HistStorage(object):
                         self.hists[f]=list(self.hists.values())[0].clone()
                         self.hists[f].Reset()
                     else:
+                        from rootpy.plotting import Hist
                         self.hists[f]=Hist(100,0,100)
 
         if self._joinList is not False:
@@ -845,6 +881,46 @@ class HistStorage(object):
                 for i in _tree.glob("*"):
                     log_plotlib.info( i)
                 raise RuntimeError("Will stop here!")
+            self.hists[f].Scale(self._getWeight(f))
+            self.hists[f].Sumw2()
+        if self._joinList is not False:
+            self.joinList(self._joinList)
+        for hist in self.hists:
+            if hist in self.style:
+                self.hists[hist].decorate(**self.style[hist])
+                
+
+    ## Function get hists via trees from files
+    #
+    # the hists ate added to .hists and joined if a joinList exist
+    # @param[in] hist string of the hist in the files
+    def getHistFromTreeParallel(self,bins,xmin,xmax,xtitle,cut,value,tree,weight=None):
+        from rootpy.plotting import Hist
+        import random,string,os
+        import multiprocessing
+        self.clearHists()
+        q=[]
+        for f in self.files:
+            #try:
+                #_tree=self.files[f].Get(tree)
+            #except AttributeError as e:
+                #log_plotlib.warning( "No %s in %s"%(tree,f))
+                #log_plotlib.warning( "Will try without %s, and add an empty hist."%f)
+                #log_plotlib.warning( e)
+                #self.hists[f]=Hist(binns,xmin,xmax)
+                #continue
+            self.hists[f]=Hist(bins,xmin,xmax)
+            self.hists[f].GetXaxis().SetTitle(xtitle)
+            
+            filename=str(self.files[f].GetPath()).split(":")[0]
+            q.append([filename,tree,value,cut,self.hists[f],weight,f])
+            
+        p = multiprocessing.Pool(2)
+        results = p.map_async(parallelTreeWorker, q)
+        _results=results.get()
+        for r in _results:
+            self.hists[r[1]]=asrootpy(r[0])
+        for f in self.files:
             self.hists[f].Scale(self._getWeight(f))
             self.hists[f].Sumw2()
         if self._joinList is not False:
@@ -1029,7 +1105,8 @@ class HistStorage(object):
                     width=self.forcedWidth
                 else:
                     width=list(self.hists.values())[-1].xwidth(2)
-                self.hists[key].yaxis.SetTitle("%s/(%s %s)"%(self.eventString,rnd.latex(width),self._getUnit()))
+                if not self.hists[key].InheritsFrom("TH2"):
+                    self.hists[key].yaxis.SetTitle("%s/(%s %s)"%(self.eventString,rnd.latex(width),self._getUnit()))
                 if self.isData:
                     self.hists[key].SetTitle("Data")
                 else:
