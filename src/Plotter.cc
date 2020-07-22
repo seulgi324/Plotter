@@ -421,7 +421,8 @@ void Plotter::CreateStack( TDirectory *target, Logfile& logfile) {
       if( !onlyTop ) {
 	delete errorratio;
 	delete PrevFitTMP;
-	signalBot->Delete();
+        delete signalBot;
+	//signalBot->Delete();
       }
 
     } else if ( obj->IsA()->InheritsFrom( TDirectory::Class() ) ) {
